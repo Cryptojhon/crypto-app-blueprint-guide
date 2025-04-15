@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Button } from '@/components/ui/button';
 import { 
@@ -12,10 +13,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { DollarSign } from 'lucide-react';
+import { DollarSign, LogOut } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { balance, totalValue, addFunds } = usePortfolio();
+  const { isAdmin, signOut } = useAuth();
   const [fundAmount, setFundAmount] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -56,39 +58,47 @@ const Header: React.FC = () => {
             </div>
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex gap-2">
-                <DollarSign size={16} />
-                Add Funds
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Funds to Your Account</DialogTitle>
-                <DialogDescription>
-                  Enter the amount you want to add to your trading balance.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="flex items-center space-x-2 mt-4">
-                <DollarSign className="text-muted-foreground" size={20} />
-                <Input 
-                  type="number" 
-                  placeholder="Amount" 
-                  value={fundAmount} 
-                  onChange={(e) => setFundAmount(e.target.value)}
-                />
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddFunds}>Add Funds</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex gap-2">
+                    <DollarSign size={16} />
+                    Add Funds
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Funds to Your Account</DialogTitle>
+                    <DialogDescription>
+                      Enter the amount you want to add to your trading balance.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="flex items-center space-x-2 mt-4">
+                    <DollarSign className="text-muted-foreground" size={20} />
+                    <Input 
+                      type="number" 
+                      placeholder="Amount" 
+                      value={fundAmount} 
+                      onChange={(e) => setFundAmount(e.target.value)}
+                    />
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddFunds}>Add Funds</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            <Button variant="outline" onClick={signOut}>
+              <LogOut size={16} />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
