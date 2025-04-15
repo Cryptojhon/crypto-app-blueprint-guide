@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AssetDetail from "./pages/AssetDetail";
 import NotFound from "./pages/NotFound";
+import WalletManagement from "./pages/WalletManagement";
 import { PortfolioProvider } from "./contexts/PortfolioContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/RequireAuth";
@@ -37,6 +38,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <AssetDetail />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/wallet"
+                element={
+                  <RequireAuth>
+                    <WalletManagement />
                   </RequireAuth>
                 }
               />

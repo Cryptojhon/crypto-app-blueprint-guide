@@ -18,7 +18,12 @@ interface PortfolioContextType {
   totalValue: number;
   buyAsset: (asset: CryptoAsset, amount: number, price: number) => Promise<void>;
   sellAsset: (asset: CryptoAsset, amount: number, price: number) => Promise<void>;
-  addFunds: (amount: number) => void;
+  addFunds: (amount: number) => Promise<void>;
+  withdrawFunds: (amount: number) => Promise<void>;
+  generateReferralLink: () => Promise<string>;
+  referralCode: string | null;
+  referralCount: number;
+  isLoadingReferral: boolean;
 }
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
@@ -27,6 +32,9 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [balance, setBalance] = useState(10000); // Mock starting balance of $10,000
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAsset[]>([]);
   const [totalValue, setTotalValue] = useState(0);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralCount, setReferralCount] = useState(0);
+  const [isLoadingReferral, setIsLoadingReferral] = useState(false);
   const { user } = useAuth();
 
   // Fetch user's portfolio on mount
@@ -53,9 +61,54 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
       }));
 
       setPortfolioAssets(assets);
+
+      // Fetch user profile for balance
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', user.id)
+        .single();
+
+      if (!profileError && profile) {
+        setBalance(Number(profile.balance));
+      }
     };
 
     fetchPortfolio();
+  }, [user]);
+
+  // Fetch referral data
+  useEffect(() => {
+    const fetchReferralData = async () => {
+      if (!user) return;
+
+      setIsLoadingReferral(true);
+      
+      // Fetch existing referral code
+      const { data: referralData, error: referralError } = await supabase
+        .from('referrals')
+        .select('code')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!referralError && referralData) {
+        setReferralCode(referralData.code);
+        
+        // Count referrals
+        const { count, error: countError } = await supabase
+          .from('referrals_used')
+          .select('*', { count: 'exact', head: true })
+          .eq('referrer_id', user.id);
+          
+        if (!countError && count !== null) {
+          setReferralCount(count);
+        }
+      }
+      
+      setIsLoadingReferral(false);
+    };
+    
+    fetchReferralData();
   }, [user]);
 
   // Calculate total portfolio value
@@ -211,7 +264,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   };
 
-  const addFunds = (amount: number) => {
+  const addFunds = async (amount: number) => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -221,12 +274,151 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
       return;
     }
 
-    setBalance(prevBalance => prevBalance + amount);
-    
-    toast({
-      title: "Funds Added",
-      description: `$${amount.toLocaleString()} has been added to your account.`,
-    });
+    try {
+      // Update the user's balance in the database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ balance: balance + amount })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Insert a deposit transaction
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'deposit',
+          asset_id: 'USD',
+          amount: amount,
+          price: 1,
+          total_value: amount
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update local state
+      setBalance(prevBalance => prevBalance + amount);
+      
+      toast({
+        title: "Funds Added",
+        description: `$${amount.toLocaleString()} has been added to your account.`,
+      });
+    } catch (error) {
+      console.error('Deposit error:', error);
+      toast({
+        title: "Deposit Failed",
+        description: "There was an error processing your deposit.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const withdrawFunds = async (amount: number) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to withdraw funds.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (amount > balance) {
+      toast({
+        title: "Insufficient Funds",
+        description: "You don't have enough balance to complete this withdrawal.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Update the user's balance in the database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ balance: balance - amount })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Insert a withdrawal transaction
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'withdraw',
+          asset_id: 'USD',
+          amount: amount,
+          price: 1,
+          total_value: amount
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update local state
+      setBalance(prevBalance => prevBalance - amount);
+      
+      toast({
+        title: "Withdrawal Successful",
+        description: `$${amount.toLocaleString()} has been withdrawn from your account.`,
+      });
+    } catch (error) {
+      console.error('Withdrawal error:', error);
+      toast({
+        title: "Withdrawal Failed",
+        description: "There was an error processing your withdrawal.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const generateReferralLink = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to generate a referral link.",
+        variant: "destructive"
+      });
+      return '';
+    }
+
+    try {
+      // Check if user already has a referral code
+      if (referralCode) {
+        return `${window.location.origin}/auth?ref=${referralCode}`;
+      }
+
+      // Generate a new referral code
+      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      
+      const { error } = await supabase
+        .from('referrals')
+        .insert({
+          user_id: user.id,
+          code: code,
+        });
+
+      if (error) throw error;
+
+      // Update local state
+      setReferralCode(code);
+      
+      toast({
+        title: "Referral Link Generated",
+        description: "Your referral link is ready to share!",
+      });
+      
+      return `${window.location.origin}/auth?ref=${code}`;
+    } catch (error) {
+      console.error('Referral generation error:', error);
+      toast({
+        title: "Failed to Generate Referral Link",
+        description: "There was an error generating your referral link.",
+        variant: "destructive"
+      });
+      return '';
+    }
   };
 
   const value: PortfolioContextType = {
@@ -235,7 +427,12 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     totalValue,
     buyAsset,
     sellAsset,
-    addFunds
+    addFunds,
+    withdrawFunds,
+    generateReferralLink,
+    referralCode,
+    referralCount,
+    isLoadingReferral
   };
 
   return (

@@ -1,11 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const SOMALIA_DISTRICTS = [
   'Banaadir', 'Bari', 'Bay', 'Galguduud', 'Gedo', 'Hiiraan', 
@@ -22,8 +24,28 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [district, setDistrict] = useState('');
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Extract referral code from URL
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const ref = queryParams.get('ref');
+    
+    if (ref) {
+      setReferralCode(ref);
+      // Switch to sign up mode if coming from a referral link
+      setIsLogin(false);
+      
+      toast({
+        title: "Referral Detected",
+        description: "Sign up to receive your referral bonus!",
+      });
+    }
+  }, [location.search, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,12 +72,51 @@ const Auth = () => {
           return;
         }
 
-        await signUp(email, password, {
+        const userData = {
           username,
           full_name: fullName,
           phone_number: phoneNumber,
           district
-        });
+        };
+
+        // If a referral code was provided, include it in user metadata
+        if (referralCode) {
+          Object.assign(userData, { referred_by: referralCode });
+        }
+
+        await signUp(email, password, userData);
+        
+        // If referral code exists, record the referral usage
+        if (referralCode) {
+          // This creates a deferred function that will run after signup is completed
+          // We can't use await here since we need this to run after the session is established
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session?.user) {
+              const { data: referral } = await supabase
+                .from('referrals')
+                .select('user_id')
+                .eq('code', referralCode)
+                .single();
+                
+              if (referral) {
+                // Record the referral usage
+                await supabase.from('referrals_used').insert({
+                  referrer_id: referral.user_id,
+                  referred_id: session.user.id,
+                  referral_code: referralCode
+                });
+                
+                // Award the signup bonus to the new user (as a balance increase)
+                await supabase
+                  .from('profiles')
+                  .update({ balance: 5 }) // $5 signup bonus
+                  .eq('id', session.user.id);
+              }
+            }
+          }, 2000);
+        }
       }
     } catch (error: any) {
       toast({
@@ -74,6 +135,20 @@ const Auth = () => {
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </h1>
         </div>
+
+        {referralCode && !isLogin && (
+          <div className="bg-green-50 border border-green-200 p-4 rounded-md flex items-start gap-3">
+            <div className="bg-green-100 p-1.5 rounded-full">
+              <GiftIcon className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="font-medium text-green-800">Referral Bonus!</p>
+              <p className="text-sm text-green-700">
+                You'll receive $5 when you sign up with this referral.
+              </p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -174,5 +249,27 @@ const Auth = () => {
     </div>
   );
 };
+
+// Import GiftIcon for the referral notification
+const GiftIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <polyline points="20 12 20 22 4 22 4 12"></polyline>
+    <rect x="2" y="7" width="20" height="5"></rect>
+    <line x1="12" y1="22" x2="12" y2="7"></line>
+    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+  </svg>
+);
 
 export default Auth;
