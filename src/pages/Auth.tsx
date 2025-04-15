@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { GiftIcon } from 'lucide-react';
 
 const SOMALIA_DISTRICTS = [
   'Banaadir', 'Bari', 'Bay', 'Galguduud', 'Gedo', 'Hiiraan', 
@@ -30,14 +30,12 @@ const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Extract referral code from URL
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const ref = queryParams.get('ref');
     
     if (ref) {
       setReferralCode(ref);
-      // Switch to sign up mode if coming from a referral link
       setIsLogin(false);
       
       toast({
@@ -62,7 +60,6 @@ const Auth = () => {
           return;
         }
 
-        // Validate Somalia phone number format
         if (!phoneNumber.match(/^\+252[1-9][0-9]{8}$/)) {
           toast({
             title: "Error",
@@ -79,39 +76,33 @@ const Auth = () => {
           district
         };
 
-        // If a referral code was provided, include it in user metadata
         if (referralCode) {
           Object.assign(userData, { referred_by: referralCode });
         }
 
         await signUp(email, password, userData);
         
-        // If referral code exists, record the referral usage
         if (referralCode) {
-          // This creates a deferred function that will run after signup is completed
-          // We can't use await here since we need this to run after the session is established
           setTimeout(async () => {
             const { data: { session } } = await supabase.auth.getSession();
             
             if (session?.user) {
-              const { data: referral } = await supabase
+              const { data: referralData } = await supabase
                 .from('referrals')
                 .select('user_id')
                 .eq('code', referralCode)
-                .single();
+                .maybeSingle();
                 
-              if (referral) {
-                // Record the referral usage
+              if (referralData) {
                 await supabase.from('referrals_used').insert({
-                  referrer_id: referral.user_id,
+                  referrer_id: referralData.user_id,
                   referred_id: session.user.id,
                   referral_code: referralCode
                 });
                 
-                // Award the signup bonus to the new user (as a balance increase)
                 await supabase
                   .from('profiles')
-                  .update({ balance: 5 }) // $5 signup bonus
+                  .update({ balance: 5 })
                   .eq('id', session.user.id);
               }
             }
@@ -249,27 +240,5 @@ const Auth = () => {
     </div>
   );
 };
-
-// Import GiftIcon for the referral notification
-const GiftIcon = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <polyline points="20 12 20 22 4 22 4 12"></polyline>
-    <rect x="2" y="7" width="20" height="5"></rect>
-    <line x1="12" y1="22" x2="12" y2="7"></line>
-    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-  </svg>
-);
 
 export default Auth;

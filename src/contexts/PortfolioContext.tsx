@@ -84,15 +84,21 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       setIsLoadingReferral(true);
       
-      // Fetch existing referral code
-      const { data: referralData, error: referralError } = await supabase
-        .from('referrals')
-        .select('code')
-        .eq('user_id', user.id)
-        .single();
+      try {
+        // Fetch existing referral code
+        const { data: referralData, error: referralError } = await supabase
+          .from('referrals')
+          .select('code')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (!referralError && referralData) {
-        setReferralCode(referralData.code);
+        if (referralError) {
+          console.error('Error fetching referral:', referralError);
+        }
+
+        if (referralData) {
+          setReferralCode(referralData.code);
+        }
         
         // Count referrals
         const { count, error: countError } = await supabase
@@ -100,12 +106,16 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
           .select('*', { count: 'exact', head: true })
           .eq('referrer_id', user.id);
           
-        if (!countError && count !== null) {
-          setReferralCount(count);
+        if (countError) {
+          console.error('Error counting referrals:', countError);
         }
+
+        setReferralCount(count ?? 0);
+      } catch (error) {
+        console.error('Error in fetchReferralData:', error);
+      } finally {
+        setIsLoadingReferral(false);
       }
-      
-      setIsLoadingReferral(false);
     };
     
     fetchReferralData();
