@@ -13,26 +13,35 @@ export type Database = {
         Row: {
           balance: number
           created_at: string
+          district: string | null
+          full_name: string | null
           id: string
+          phone_number: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
-          username: string | null
+          username: string
         }
         Insert: {
           balance?: number
           created_at?: string
+          district?: string | null
+          full_name?: string | null
           id: string
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          username?: string | null
+          username: string
         }
         Update: {
           balance?: number
           created_at?: string
+          district?: string | null
+          full_name?: string | null
           id?: string
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          username?: string | null
+          username?: string
         }
         Relationships: []
       }
