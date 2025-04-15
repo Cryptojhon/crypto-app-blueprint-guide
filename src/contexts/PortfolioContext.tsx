@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CryptoAsset } from '../services/cryptoApi';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +18,7 @@ interface PortfolioContextType {
   totalValue: number;
   buyAsset: (asset: CryptoAsset, amount: number, price: number) => Promise<void>;
   sellAsset: (asset: CryptoAsset, amount: number, price: number) => Promise<void>;
+  addFunds: (amount: number) => void;
 }
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
@@ -211,12 +211,31 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   };
 
+  const addFunds = (amount: number) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to add funds.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setBalance(prevBalance => prevBalance + amount);
+    
+    toast({
+      title: "Funds Added",
+      description: `$${amount.toLocaleString()} has been added to your account.`,
+    });
+  };
+
   const value: PortfolioContextType = {
     balance,
     portfolioAssets,
     totalValue,
     buyAsset,
-    sellAsset
+    sellAsset,
+    addFunds
   };
 
   return (
