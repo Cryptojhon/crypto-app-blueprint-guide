@@ -10,6 +10,7 @@ import AssetDetail from "./pages/AssetDetail";
 import NotFound from "./pages/NotFound";
 import WalletManagement from "./pages/WalletManagement";
 import ProfileManagement from "./pages/ProfileManagement";
+import TransactionHistory from "./pages/TransactionHistory";
 import { PortfolioProvider } from "./contexts/PortfolioContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/RequireAuth";
@@ -47,6 +48,14 @@ const App = () => (
                 element={
                   <RequireAuth>
                     <WalletManagement />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                  <RequireAuth>
+                    <TransactionHistory />
                   </RequireAuth>
                 }
               />

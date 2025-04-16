@@ -1,13 +1,14 @@
 
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import FundsManagement from '@/components/portfolio/FundsManagement';
 import ReferralSystem from '@/components/portfolio/ReferralSystem';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, CoinsIcon } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { ArrowUpIcon, ArrowDownIcon, CoinsIcon, HistoryIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 const WalletManagement = () => {
   const { user } = useAuth();
@@ -54,6 +55,19 @@ const WalletManagement = () => {
           <CardContent>
             <RecentTransactions userId={user?.id} />
           </CardContent>
+          <CardFooter className="pt-0">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full" 
+              asChild
+            >
+              <Link to="/transactions" className="flex items-center justify-center">
+                <HistoryIcon className="mr-2 h-4 w-4" />
+                View Full Transaction History
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
       
@@ -134,8 +148,5 @@ const RecentTransactions = ({ userId }: { userId?: string }) => {
     </div>
   );
 };
-
-// Add useState import for RecentTransactions
-import { useState } from 'react';
 
 export default WalletManagement;
