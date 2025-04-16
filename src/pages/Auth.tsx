@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { GiftIcon } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 
 const SOMALIA_DISTRICTS = [
   'Banaadir', 'Bari', 'Bay', 'Galguduud', 'Gedo', 'Hiiraan', 
@@ -25,10 +27,18 @@ const Auth = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [district, setDistrict] = useState('');
   const [referralCode, setReferralCode] = useState<string | null>(null);
-  const { signIn, signUp } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
@@ -47,6 +57,8 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
       if (isLogin) {
         await signIn(email, password);
@@ -57,6 +69,7 @@ const Auth = () => {
             description: "All fields are required",
             variant: "destructive",
           });
+          setIsSubmitting(false);
           return;
         }
 
@@ -66,6 +79,7 @@ const Auth = () => {
             description: "Please enter a valid Somalia phone number (+252XXXXXXXXX)",
             variant: "destructive",
           });
+          setIsSubmitting(false);
           return;
         }
 
@@ -110,11 +124,14 @@ const Auth = () => {
         }
       }
     } catch (error: any) {
+      console.error("Authentication error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Authentication failed. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -151,6 +168,7 @@ const Auth = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -165,6 +183,7 @@ const Auth = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -177,6 +196,7 @@ const Auth = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -189,12 +209,13 @@ const Auth = () => {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="district">District</Label>
-                <Select value={district} onValueChange={setDistrict} required>
+                <Select value={district} onValueChange={setDistrict} disabled={isSubmitting}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your district" />
                   </SelectTrigger>
@@ -219,11 +240,23 @@ const Auth = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={isSubmitting}
             />
           </div>
 
-          <Button type="submit" className="w-full">
-            {isLogin ? 'Sign In' : 'Sign Up'}
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+                {isLogin ? 'Signing in...' : 'Creating account...'}
+              </>
+            ) : (
+              isLogin ? 'Sign In' : 'Sign Up'
+            )}
           </Button>
         </form>
 
@@ -232,6 +265,7 @@ const Auth = () => {
             type="button"
             onClick={() => setIsLogin(!isLogin)}
             className="text-primary hover:underline"
+            disabled={isSubmitting}
           >
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>

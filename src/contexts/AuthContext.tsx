@@ -1,7 +1,9 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   session: Session | null;
@@ -27,12 +29,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-          setIsAdmin(data?.role === 'admin');
+          // Using setTimeout to prevent deadlock with Supabase auth state change
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            setIsAdmin(data?.role === 'admin');
+          }, 0);
         } else {
           setIsAdmin(false);
         }
@@ -42,6 +47,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            setIsAdmin(data?.role === 'admin');
+          });
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -50,6 +66,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    toast({
+      title: "Welcome back!",
+      description: "You have successfully signed in.",
+    });
     navigate('/');
   };
 
@@ -62,6 +82,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       },
     });
     if (error) throw error;
+    
+    toast({
+      title: "Account created",
+      description: "Your account has been successfully created!",
+    });
     navigate('/');
   };
 
