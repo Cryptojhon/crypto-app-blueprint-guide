@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Wallet, LineChart, LogOut, User, Menu, X } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";  // Changed from useMobile to useIsMobile
 
 const Header = () => {
   const { user, signOut } = useAuth();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();  // Changed from useMobile to useIsMobile
   const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleMenu = () => {
