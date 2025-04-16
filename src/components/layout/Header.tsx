@@ -1,107 +1,135 @@
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { usePortfolio } from '@/contexts/PortfolioContext';
-import { Button } from '@/components/ui/button';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { DollarSign, LogOut } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Wallet, LineChart, LogOut, User, Menu, X } from "lucide-react";
+import { useMobile } from "@/hooks/use-mobile";
 
-const Header: React.FC = () => {
-  const { balance, totalValue, addFunds } = usePortfolio();
-  const { isAdmin, signOut } = useAuth();
-  const [fundAmount, setFundAmount] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+const Header = () => {
+  const { user, signOut } = useAuth();
+  const isMobile = useMobile();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleAddFunds = () => {
-    const amount = parseFloat(fundAmount);
-    if (!isNaN(amount) && amount > 0) {
-      addFunds(amount);
-      setFundAmount('');
-      setIsDialogOpen(false);
-    }
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
   };
 
   return (
-    <div className="border-b border-b-border bg-card py-3 px-6">
-      <div className="flex flex-col md:flex-row justify-between items-center">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-500">
-              CryptoTrader
-            </span>
-          </h1>
+    <header className="bg-background sticky top-0 z-10 w-full border-b">
+      <div className="container mx-auto flex h-16 items-center px-4">
+        <div className="flex flex-1">
+          <Link to="/" className="font-bold text-xl mr-8">CryptoTrade</Link>
         </div>
+        {isMobile ? (
+          <>
+            <button
+              onClick={toggleMenu}
+              className="p-2 rounded-md"
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
 
-        <div className="flex flex-col md:flex-row items-center mt-4 md:mt-0 gap-4">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Portfolio Value</div>
-              <div className="text-xl font-bold">
-                ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </div>
-            </div>
-
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Available Balance</div>
-              <div className="text-xl font-bold">
-                ${balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex gap-2">
-                    <DollarSign size={16} />
-                    Add Funds
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Funds to Your Account</DialogTitle>
-                    <DialogDescription>
-                      Enter the amount you want to add to your trading balance.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="flex items-center space-x-2 mt-4">
-                    <DollarSign className="text-muted-foreground" size={20} />
-                    <Input 
-                      type="number" 
-                      placeholder="Amount" 
-                      value={fundAmount} 
-                      onChange={(e) => setFundAmount(e.target.value)}
-                    />
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancel
+            {menuOpen && (
+              <div className="absolute top-16 left-0 right-0 bg-background border-b p-4 flex flex-col space-y-2">
+                {user ? (
+                  <>
+                    <Link
+                      to="/"
+                      className="flex items-center px-4 py-2 hover:bg-accent rounded-md"
+                      onClick={toggleMenu}
+                    >
+                      <LineChart className="mr-2 h-4 w-4" />
+                      Markets
+                    </Link>
+                    <Link
+                      to="/wallet"
+                      className="flex items-center px-4 py-2 hover:bg-accent rounded-md"
+                      onClick={toggleMenu}
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Wallet
+                    </Link>
+                    <Link
+                      to="/profile"
+                      className="flex items-center px-4 py-2 hover:bg-accent rounded-md"
+                      onClick={toggleMenu}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        signOut();
+                        toggleMenu();
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
                     </Button>
-                    <Button onClick={handleAddFunds}>Add Funds</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </>
+                ) : (
+                  <Link
+                    to="/auth"
+                    className="flex items-center px-4 py-2 hover:bg-accent rounded-md"
+                    onClick={toggleMenu}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Login
+                  </Link>
+                )}
+              </div>
             )}
-            
-            <Button variant="outline" onClick={signOut}>
-              <LogOut size={16} />
-            </Button>
-          </div>
-        </div>
+          </>
+        ) : (
+          <nav className="flex items-center space-x-4">
+            {user ? (
+              <>
+                <Link
+                  to="/"
+                  className="text-sm font-medium transition-colors hover:text-primary flex items-center"
+                >
+                  <LineChart className="mr-1 h-4 w-4" />
+                  Markets
+                </Link>
+                <Link
+                  to="/wallet"
+                  className="text-sm font-medium transition-colors hover:text-primary flex items-center"
+                >
+                  <Wallet className="mr-1 h-4 w-4" />
+                  Wallet
+                </Link>
+                <Link
+                  to="/profile"
+                  className="text-sm font-medium transition-colors hover:text-primary flex items-center"
+                >
+                  <User className="mr-1 h-4 w-4" />
+                  Profile
+                </Link>
+                <Button variant="ghost" size="sm" onClick={signOut}>
+                  <LogOut className="mr-1 h-4 w-4" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm">
+                  <User className="mr-1 h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+            )}
+          </nav>
+        )}
       </div>
-    </div>
+    </header>
   );
 };
 
