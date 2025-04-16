@@ -1,20 +1,24 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const currencies = [
   { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1 },
   { code: 'SOMSH', name: 'Somali Shilling', symbol: 'Sh.So.', rate: 17600 },
-  { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.92 }
+  { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.92 },
+  { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.79 },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥', rate: 151.14 }
 ];
 
 const fundSchema = z.object({
@@ -32,9 +36,17 @@ type FundFormValues = z.infer<typeof fundSchema>;
 
 const FundsManagement = () => {
   const { addFunds, withdrawFunds, balance } = usePortfolio();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [convertedAmount, setConvertedAmount] = useState(0);
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastTransaction, setLastTransaction] = useState<{
+    success: boolean;
+    type: 'deposit' | 'withdraw';
+    amount: number;
+    currency: string;
+  } | null>(null);
 
   const form = useForm<FundFormValues>({
     resolver: zodResolver(fundSchema),
@@ -43,6 +55,12 @@ const FundsManagement = () => {
       currency: 'USD'
     },
   });
+
+  // Reset form when tab changes
+  useEffect(() => {
+    form.reset();
+    setLastTransaction(null);
+  }, [activeTab, form]);
 
   // Calculate the converted amount when currency or amount changes
   useEffect(() => {
@@ -61,29 +79,63 @@ const FundsManagement = () => {
   }, [form.watch('amount'), form.watch('currency')]);
 
   const onSubmit = async (values: FundFormValues) => {
-    const usdAmount = convertedAmount; // This is already in USD
+    setIsProcessing(true);
+    const usdAmount = convertedAmount;
     
-    if (activeTab === 'deposit') {
-      await addFunds(usdAmount);
-    } else {
-      await withdrawFunds(usdAmount);
+    try {
+      if (activeTab === 'deposit') {
+        await addFunds(usdAmount);
+        setLastTransaction({
+          success: true,
+          type: 'deposit',
+          amount: usdAmount,
+          currency: values.currency
+        });
+      } else {
+        await withdrawFunds(usdAmount);
+        setLastTransaction({
+          success: true,
+          type: 'withdraw',
+          amount: usdAmount,
+          currency: values.currency
+        });
+      }
+      
+      form.reset();
+    } catch (error) {
+      console.error(activeTab === 'deposit' ? 'Deposit error:' : 'Withdrawal error:', error);
+      setLastTransaction({
+        success: false,
+        type: activeTab,
+        amount: usdAmount,
+        currency: values.currency
+      });
+      
+      toast({
+        title: activeTab === 'deposit' ? 'Deposit Failed' : 'Withdrawal Failed',
+        description: 'There was an error processing your transaction. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    
-    form.reset();
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Manage Funds</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSignIcon className="h-5 w-5 text-primary" />
+          Manage Funds
+        </CardTitle>
         <CardDescription>Deposit or withdraw funds from your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex space-x-2 mb-4">
+        <div className="flex space-x-2 mb-6">
           <Button 
             variant={activeTab === 'deposit' ? 'default' : 'outline'}
             onClick={() => setActiveTab('deposit')}
-            className="flex items-center"
+            className="flex-1 flex items-center justify-center"
           >
             <ArrowUpIcon className="mr-2 h-4 w-4" />
             Deposit
@@ -91,20 +143,43 @@ const FundsManagement = () => {
           <Button 
             variant={activeTab === 'withdraw' ? 'default' : 'outline'}
             onClick={() => setActiveTab('withdraw')}
-            className="flex items-center"
+            className="flex-1 flex items-center justify-center"
           >
             <ArrowDownIcon className="mr-2 h-4 w-4" />
             Withdraw
           </Button>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">
-          {activeTab === 'deposit' 
-            ? 'Add funds to your account to trade assets.' 
-            : 'Withdraw funds from your account.'}
-        </p>
+        {lastTransaction && (
+          <Alert 
+            className={`mb-4 ${lastTransaction.success ? 'border-green-500 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-300' : 'border-red-500 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-300'}`}
+          >
+            <div className="flex items-center gap-2">
+              {lastTransaction.success ? (
+                <CheckCircleIcon className="h-5 w-5 text-green-500 dark:text-green-400" />
+              ) : (
+                <AlertTriangleIcon className="h-5 w-5 text-red-500 dark:text-red-400" />
+              )}
+              <AlertTitle>
+                {lastTransaction.success 
+                  ? (lastTransaction.type === 'deposit' ? 'Deposit Successful' : 'Withdrawal Successful')
+                  : (lastTransaction.type === 'deposit' ? 'Deposit Failed' : 'Withdrawal Failed')
+                }
+              </AlertTitle>
+            </div>
+            <AlertDescription>
+              {lastTransaction.success 
+                ? `Your ${lastTransaction.type} of ${selectedCurrency.symbol}${Number(lastTransaction.amount).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })} was processed successfully.`
+                : `We couldn't process your ${lastTransaction.type}. Please try again.`
+              }
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <div className="mb-4">
+        <div className="bg-muted p-4 rounded-md mb-6">
           <p className="text-sm font-medium">Available Balance</p>
           <p className="text-xl font-bold">${balance.toLocaleString()}</p>
         </div>
@@ -181,22 +256,38 @@ const FundsManagement = () => {
             )}
 
             {activeTab === 'withdraw' && convertedAmount > balance && (
-              <p className="text-destructive text-sm">
-                The amount you're trying to withdraw exceeds your available balance.
-              </p>
+              <Alert variant="destructive" className="text-sm py-3">
+                <AlertDescription>
+                  The amount you're trying to withdraw exceeds your available balance.
+                </AlertDescription>
+              </Alert>
             )}
             
             <Button 
               type="submit" 
               className="w-full"
-              disabled={form.formState.isSubmitting || 
+              disabled={isProcessing || form.formState.isSubmitting || 
                 (activeTab === 'withdraw' && convertedAmount > balance)}
             >
-              {activeTab === 'deposit' ? 'Deposit Funds' : 'Withdraw Funds'}
+              {isProcessing ? (
+                <span className="flex items-center">
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent"></span>
+                  Processing...
+                </span>
+              ) : (
+                activeTab === 'deposit' ? 'Deposit Funds' : 'Withdraw Funds'
+              )}
             </Button>
           </form>
         </Form>
       </CardContent>
+      <CardFooter className="bg-muted/50 text-xs text-center text-muted-foreground">
+        {activeTab === 'deposit' ? (
+          <>Funds will be available immediately in your account.</>
+        ) : (
+          <>Withdrawals typically process within 1-3 business days.</>
+        )}
+      </CardFooter>
     </Card>
   );
 };
