@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -28,12 +27,12 @@ const Auth = () => {
   const [district, setDistrict] = useState('');
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/');
@@ -55,30 +54,45 @@ const Auth = () => {
     }
   }, [location.search, toast]);
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const validatePassword = (password: string) => {
+    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+    return re.test(password);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setAuthError(null);
+    
+    if (!validateEmail(email)) {
+      setAuthError('Please enter a valid email address');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!isLogin && !validatePassword(password)) {
+      setAuthError('Password must be at least 8 characters long, contain uppercase, lowercase, and a number');
+      setIsSubmitting(false);
+      return;
+    }
     
     try {
       if (isLogin) {
         await signIn(email, password);
       } else {
         if (!username || !fullName || !phoneNumber || !district) {
-          toast({
-            title: "Error",
-            description: "All fields are required",
-            variant: "destructive",
-          });
+          setAuthError('All fields are required');
           setIsSubmitting(false);
           return;
         }
 
         if (!phoneNumber.match(/^\+252[1-9][0-9]{8}$/)) {
-          toast({
-            title: "Error",
-            description: "Please enter a valid Somalia phone number (+252XXXXXXXXX)",
-            variant: "destructive",
-          });
+          setAuthError('Please enter a valid Somalia phone number (+252XXXXXXXXX)');
           setIsSubmitting(false);
           return;
         }
@@ -125,11 +139,7 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Authentication failed. Please try again.",
-        variant: "destructive",
-      });
+      setAuthError(error.message || "Authentication failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -155,6 +165,12 @@ const Auth = () => {
                 You'll receive $5 when you sign up with this referral.
               </p>
             </div>
+          </div>
+        )}
+
+        {authError && (
+          <div className="bg-red-50 border border-red-200 p-4 rounded-md text-red-700">
+            {authError}
           </div>
         )}
 
