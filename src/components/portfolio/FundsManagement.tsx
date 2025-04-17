@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -17,6 +18,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { QRCodeSVG } from 'qrcode.react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+
+// Define type for the tab values to ensure consistency
+type FundTab = 'deposit' | 'withdraw';
 
 const currencies = [
   { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1 },
@@ -113,7 +117,7 @@ type FundFormValues = z.infer<typeof fundSchema>;
 const FundsManagement = () => {
   const { addFunds, withdrawFunds, balance } = usePortfolio();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
+  const [activeTab, setActiveTab] = useState<FundTab>('deposit');
   const [convertedAmount, setConvertedAmount] = useState(0);
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -125,7 +129,7 @@ const FundsManagement = () => {
   const [depositReference, setDepositReference] = useState("");
   const [lastTransaction, setLastTransaction] = useState<{
     success: boolean;
-    type: 'deposit' | 'withdraw';
+    type: FundTab;
     amount: number;
     currency: string;
     reference?: string;
