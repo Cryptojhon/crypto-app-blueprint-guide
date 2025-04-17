@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon, CreditCardIcon, BuildingBankIcon, WalletIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon, CreditCardIcon, BuildingIcon, WalletIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,12 +25,11 @@ const currencies = [
 ];
 
 const paymentMethods = [
-  { id: 'bank_transfer', name: 'Bank Transfer', icon: BuildingBankIcon, processingTime: '1-3 business days', fee: 0 },
+  { id: 'bank_transfer', name: 'Bank Transfer', icon: BuildingIcon, processingTime: '1-3 business days', fee: 0 },
   { id: 'credit_card', name: 'Credit Card', icon: CreditCardIcon, processingTime: 'Instant', fee: 2.5 },
   { id: 'crypto_wallet', name: 'Crypto Wallet', icon: WalletIcon, processingTime: '10-30 minutes', fee: 1 }
 ];
 
-// Transaction limits
 const LIMITS = {
   deposit: {
     min: 10,
@@ -91,7 +89,6 @@ const FundsManagement = () => {
     },
   });
 
-  // Reset form when tab changes
   useEffect(() => {
     form.reset({
       amount: '',
@@ -104,14 +101,12 @@ const FundsManagement = () => {
     setProcessingProgress(0);
   }, [activeTab, form]);
 
-  // Update payment method when selected
   useEffect(() => {
     const methodId = form.watch('paymentMethod');
     const method = paymentMethods.find(m => m.id === methodId) || paymentMethods[0];
     setSelectedPaymentMethod(method);
   }, [form.watch('paymentMethod')]);
 
-  // Calculate the converted amount, fees and total when currency or amount or payment method changes
   useEffect(() => {
     const amount = Number(form.watch('amount')) || 0;
     const currencyCode = form.watch('currency');
@@ -119,15 +114,12 @@ const FundsManagement = () => {
     const methodId = form.watch('paymentMethod');
     const method = paymentMethods.find(m => m.id === methodId) || paymentMethods[0];
     
-    // Convert to USD (our base currency for the wallet)
     const convertedAmt = currency.code === 'USD' ? amount : amount / currency.rate;
     setConvertedAmount(convertedAmt);
     
-    // Calculate fee
     const fee = (method.fee / 100) * convertedAmt;
     setTransactionFee(fee);
     
-    // Set total (for deposits, add fee; for withdrawals, subtract fee)
     setTotalAmount(activeTab === 'deposit' ? convertedAmt + fee : convertedAmt - fee);
     
     setSelectedCurrency(currency);
@@ -159,7 +151,6 @@ const FundsManagement = () => {
     const processingInterval = simulateProcessing();
     
     try {
-      // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 2500));
       
       if (activeTab === 'deposit') {
