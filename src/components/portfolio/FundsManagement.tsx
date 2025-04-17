@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -115,6 +114,15 @@ const fundSchema = z.object({
 
 type FundFormValues = z.infer<typeof fundSchema>;
 
+// Define a type for the transaction object to ensure type safety
+type Transaction = {
+  success: boolean;
+  type: FundTab;
+  amount: number;
+  currency: string;
+  reference?: string;
+};
+
 const FundsManagement = () => {
   const { addFunds, withdrawFunds, balance } = usePortfolio();
   const { toast } = useToast();
@@ -128,13 +136,7 @@ const FundsManagement = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [showQrCode, setShowQrCode] = useState(false);
   const [depositReference, setDepositReference] = useState("");
-  const [lastTransaction, setLastTransaction] = useState<{
-    success: boolean;
-    type: FundTab;
-    amount: number;
-    currency: string;
-    reference?: string;
-  } | null>(null);
+  const [lastTransaction, setLastTransaction] = useState<Transaction | null>(null);
 
   const form = useForm<FundFormValues>({
     resolver: zodResolver(fundSchema),
