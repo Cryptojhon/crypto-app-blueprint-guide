@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import FundsManagement from '@/components/portfolio/FundsManagement';
 import ReferralSystem from '@/components/portfolio/ReferralSystem';
+import ExchangeManagement from '@/components/portfolio/ExchangeManagement';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, CoinsIcon, HistoryIcon, Wallet2Icon, CreditCardIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, CoinsIcon, HistoryIcon, Wallet2Icon, CreditCardIcon, RepeatIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,9 +33,10 @@ const WalletManagement = () => {
       </div>
       
       <Tabs defaultValue="overview" onValueChange={setActiveTab} value={activeTab} className="mb-8">
-        <TabsList className="grid w-full md:w-1/2 grid-cols-2">
+        <TabsList className="grid w-full md:w-3/4 grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="manage">Manage Funds</TabsTrigger>
+          <TabsTrigger value="exchange">Exchange</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
@@ -63,6 +66,30 @@ const WalletManagement = () => {
             
             <Card>
               <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <RepeatIcon className="h-4 w-4 text-primary" />
+                  Exchange Hub
+                </CardTitle>
+                <CardDescription>Convert between currencies</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm mb-3">Quickly exchange between USD, Somali Shilling, and popular cryptocurrencies.</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full" 
+                  onClick={() => setActiveTab('exchange')}
+                >
+                  <RepeatIcon className="mr-2 h-3 w-3" />
+                  Go to Exchange
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Recent Activity</CardTitle>
                 <CardDescription>Last 3 transactions</CardDescription>
               </CardHeader>
@@ -83,10 +110,9 @@ const WalletManagement = () => {
                 </Button>
               </CardFooter>
             </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
             <ReferralSystem />
+            
             <Button 
               variant="default" 
               size="lg" 
@@ -101,6 +127,20 @@ const WalletManagement = () => {
         <TabsContent value="manage">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FundsManagement />
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="md:hidden h-12" 
+              onClick={() => setActiveTab('overview')}
+            >
+              Back to Overview
+            </Button>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="exchange">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ExchangeManagement />
             <Button 
               variant="outline" 
               size="lg" 

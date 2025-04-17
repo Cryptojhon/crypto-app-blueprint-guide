@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon, CreditCardIcon, BuildingIcon, WalletIcon, QrCodeIcon, CopyIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon, PhoneIcon, BuildingIcon, WalletIcon, QrCodeIcon, CopyIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -25,14 +25,11 @@ type FundTab = 'deposit' | 'withdraw';
 const currencies = [
   { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1 },
   { code: 'SOMSH', name: 'Somali Shilling', symbol: 'Sh.So.', rate: 17600 },
-  { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.92 },
-  { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.79 },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥', rate: 151.14 }
 ];
 
 const paymentMethods = [
-  { id: 'bank_transfer', name: 'Bank Transfer', icon: BuildingIcon, processingTime: '1-3 business days', fee: 0 },
-  { id: 'credit_card', name: 'Credit Card', icon: CreditCardIcon, processingTime: 'Instant', fee: 2.5 },
+  { id: 'somali_mobile', name: 'Somali Mobile Money', icon: PhoneIcon, processingTime: '5-15 minutes', fee: 1.5 },
+  { id: 'somali_bank', name: 'Somali Bank Transfer', icon: BuildingIcon, processingTime: '1-2 business days', fee: 0.5 },
   { id: 'crypto_wallet', name: 'Crypto Wallet', icon: WalletIcon, processingTime: '10-30 minutes', fee: 1 }
 ];
 
@@ -48,47 +45,51 @@ const LIMITS = {
 };
 
 // Define specific types for each address type to solve TypeScript errors
-type BankTransferAddress = {
-  accountName: string;
-  accountNumber: string;
-  routingNumber: string;
-  bankName: string;
+type SomaliMobileAddress = {
+  type: 'somali_mobile';
+  phoneNumber: string;
+  provider: string;
   reference: string;
 };
 
-type CreditCardAddress = {
-  url: string;
+type SomaliBankAddress = {
+  type: 'somali_bank';
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  branchName: string;
   reference: string;
 };
 
 type CryptoWalletAddress = {
+  type: 'crypto_wallet';
   btc: string;
   eth: string;
   usdt: string;
   reference: string;
 };
 
-// Define a map of payment method IDs to their respective address types
-type DepositAddressMap = {
-  bank_transfer: BankTransferAddress;
-  credit_card: CreditCardAddress;
-  crypto_wallet: CryptoWalletAddress;
-};
+// Use union type for deposit addresses
+type DepositAddress = SomaliMobileAddress | SomaliBankAddress | CryptoWalletAddress;
 
-// Mock deposit addresses for different payment methods
-const depositAddresses: DepositAddressMap = {
-  bank_transfer: {
+// Define a map of payment method IDs to their respective address types
+const depositAddresses: Record<string, DepositAddress> = {
+  somali_mobile: {
+    type: 'somali_mobile',
+    phoneNumber: "252615123456",
+    provider: "Zaad Service",
+    reference: "SOMMO-"
+  },
+  somali_bank: {
+    type: 'somali_bank',
     accountName: "Tradelink Finance",
     accountNumber: "8762-5490-3219-0057",
-    routingNumber: "074925698",
-    bankName: "Secure Global Bank",
-    reference: "TRDLNK-"
-  },
-  credit_card: {
-    url: "https://secure-payment.example.com/deposit",
-    reference: "CC-"
+    bankName: "Dahabshiil Bank",
+    branchName: "Mogadishu Main Branch",
+    reference: "SOMBANK-"
   },
   crypto_wallet: {
+    type: 'crypto_wallet',
     btc: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
     eth: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
     usdt: "TXyz123abcPQrstuVWxyz456defGHjklm789Pqr",
@@ -140,7 +141,7 @@ const FundsManagement = () => {
     defaultValues: {
       amount: '',
       currency: 'USD',
-      paymentMethod: 'bank_transfer',
+      paymentMethod: 'somali_mobile',
       saveMethod: false,
       agreedToTerms: false
     },
@@ -150,7 +151,7 @@ const FundsManagement = () => {
     form.reset({
       amount: '',
       currency: 'USD',
-      paymentMethod: 'bank_transfer',
+      paymentMethod: 'somali_mobile',
       saveMethod: false,
       agreedToTerms: false
     });
@@ -200,13 +201,16 @@ const FundsManagement = () => {
   };
 
   const generateTransactionReference = () => {
-    const methodId = form.getValues('paymentMethod') as keyof typeof depositAddresses;
-    const prefix = depositAddresses[methodId].reference || "TX-";
+    const methodId = form.getValues('paymentMethod');
+    const address = depositAddresses[methodId];
+    if (!address) return "TX-UNKNOWN";
+    
+    const prefix = address.reference || "TX-";
     return `${prefix}${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Date.now().toString().substring(9)}`;
   };
 
   const generateDepositAddress = () => {
-    const methodId = form.getValues('paymentMethod') as keyof typeof depositAddresses;
+    const methodId = form.getValues('paymentMethod');
     const reference = generateTransactionReference();
     setDepositReference(reference);
     setShowQrCode(true);
@@ -297,33 +301,34 @@ const FundsManagement = () => {
   };
 
   const renderQrCodeContent = () => {
-    const methodId = form.getValues('paymentMethod') as keyof typeof depositAddresses;
+    const methodId = form.getValues('paymentMethod');
     const address = depositAddresses[methodId];
     
     if (!address) return null;
     
     let qrValue = '';
     let displayAddress = '';
+    let displayLabel = '';
     
-    if (methodId === 'bank_transfer') {
-      const bankAddress = address as BankTransferAddress;
-      qrValue = `Bank: ${bankAddress.bankName}\nAccount: ${bankAddress.accountNumber}\nRouting: ${bankAddress.routingNumber}\nRef: ${depositReference}`;
-      displayAddress = bankAddress.accountNumber;
-    } else if (methodId === 'credit_card') {
-      const ccAddress = address as CreditCardAddress;
-      qrValue = `${ccAddress.url}?ref=${depositReference}`;
-      displayAddress = `${ccAddress.url}?ref=${depositReference}`;
-    } else if (methodId === 'crypto_wallet') {
-      const cryptoAddress = address as CryptoWalletAddress;
+    if (address.type === 'somali_mobile') {
+      qrValue = `Phone: ${address.phoneNumber}\nProvider: ${address.provider}\nRef: ${depositReference}`;
+      displayAddress = address.phoneNumber;
+      displayLabel = `${address.provider} Mobile Money`;
+    } else if (address.type === 'somali_bank') {
+      qrValue = `Bank: ${address.bankName}\nAccount: ${address.accountNumber}\nRef: ${depositReference}`;
+      displayAddress = address.accountNumber;
+      displayLabel = `${address.bankName}`;
+    } else if (address.type === 'crypto_wallet') {
       // For crypto, we'll use the ETH address as an example
-      qrValue = cryptoAddress.eth;
-      displayAddress = cryptoAddress.eth;
+      qrValue = address.eth;
+      displayAddress = address.eth;
+      displayLabel = "Ethereum Address";
     }
     
     return (
       <div className="mt-6 p-4 border rounded-md bg-muted/40">
         <div className="text-center mb-4">
-          <h3 className="font-medium text-lg">Deposit Address</h3>
+          <h3 className="font-medium text-lg">{displayLabel}</h3>
           <p className="text-sm text-muted-foreground mb-1">Scan this QR code or copy the address</p>
           <p className="text-xs text-muted-foreground">Reference: {depositReference}</p>
         </div>
@@ -349,20 +354,19 @@ const FundsManagement = () => {
             </Button>
           </div>
           
-          {methodId === 'crypto_wallet' && (
+          {address.type === 'crypto_wallet' && (
             <div className="w-full mt-4 grid grid-cols-2 gap-2">
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium">BTC: </span>
-                {/* Type assertion to access crypto wallet specific properties */}
                 <span className="font-mono">
-                  {(address as CryptoWalletAddress).btc.substring(0, 8)}...
-                  {(address as CryptoWalletAddress).btc.substring((address as CryptoWalletAddress).btc.length - 8)}
+                  {address.btc.substring(0, 8)}...
+                  {address.btc.substring(address.btc.length - 8)}
                 </span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => copyToClipboard((address as CryptoWalletAddress).btc)} 
+                onClick={() => copyToClipboard(address.btc)} 
                 className="h-6 text-xs"
               >
                 <CopyIcon className="h-3 w-3 mr-1" /> Copy
@@ -371,14 +375,14 @@ const FundsManagement = () => {
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium">USDT: </span>
                 <span className="font-mono">
-                  {(address as CryptoWalletAddress).usdt.substring(0, 8)}...
-                  {(address as CryptoWalletAddress).usdt.substring((address as CryptoWalletAddress).usdt.length - 8)}
+                  {address.usdt.substring(0, 8)}...
+                  {address.usdt.substring(address.usdt.length - 8)}
                 </span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => copyToClipboard((address as CryptoWalletAddress).usdt)} 
+                onClick={() => copyToClipboard(address.usdt)} 
                 className="h-6 text-xs"
               >
                 <CopyIcon className="h-3 w-3 mr-1" /> Copy
@@ -387,8 +391,8 @@ const FundsManagement = () => {
           )}
           
           <p className="text-xs text-muted-foreground mt-4 text-center">
-            Send {activeTab === 'deposit' ? form.getValues('amount') : convertedAmount.toFixed(2)} {form.getValues('currency')} to this address.
-            {methodId === 'bank_transfer' && ' Include the reference in your transfer details.'}
+            Send {form.getValues('amount')} {form.getValues('currency')} to this address.
+            {address.type === 'somali_bank' && ' Include the reference in your transfer details.'}
           </p>
         </div>
       </div>
@@ -737,10 +741,10 @@ const FundsManagement = () => {
         {activeTab === 'deposit' ? (
           <div className="text-xs text-muted-foreground space-y-1">
             <p>
-              <span className="font-medium">Bank Transfer:</span> Funds will be available within 1-3 business days.
+              <span className="font-medium">Somali Mobile Money:</span> Funds will be available within 5-15 minutes after confirmation.
             </p>
             <p>
-              <span className="font-medium">Credit Card:</span> Funds will be available immediately.
+              <span className="font-medium">Somali Bank Transfer:</span> Funds will be available within 1-2 business days.
             </p>
             <p>
               <span className="font-medium">Crypto Wallet:</span> Funds will be available after blockchain confirmation (10-30 minutes).
@@ -749,10 +753,10 @@ const FundsManagement = () => {
         ) : (
           <div className="text-xs text-muted-foreground space-y-1">
             <p>
-              <span className="font-medium">Bank Transfer:</span> Withdrawals typically process within 1-3 business days.
+              <span className="font-medium">Somali Mobile Money:</span> Withdrawals typically process within 5-15 minutes.
             </p>
             <p>
-              <span className="font-medium">Credit Card:</span> Refunds to credit cards typically process within 3-5 business days.
+              <span className="font-medium">Somali Bank Transfer:</span> Withdrawals typically process within 1-2 business days.
             </p>
             <p>
               <span className="font-medium">Crypto Wallet:</span> Withdrawals typically process within 1-2 hours after approval.
