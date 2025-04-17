@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,13 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowRightIcon, DollarSignIcon, RepeatIcon, ChevronUpDownIcon, ArrowDownIcon, CheckCircleIcon } from 'lucide-react';
+import { ArrowRightIcon, DollarSignIcon, RepeatIcon, ChevronsUpDown, ArrowDownIcon, CheckCircleIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 
-// Define exchange pairs
 const exchangePairs = [
   { from: 'USD', to: 'SOMSH', rate: 17600, fee: 1.2 },
   { from: 'SOMSH', to: 'USD', rate: 1/17600, fee: 1.5 },
@@ -26,7 +24,6 @@ const exchangePairs = [
   { from: 'BTC', to: 'SOMSH', rate: 1091200000, fee: 2.0 },
 ];
 
-// Define currency information
 const currencies = {
   USD: { name: 'US Dollar', symbol: '$', decimals: 2 },
   SOMSH: { name: 'Somali Shilling', symbol: 'Sh.So.', decimals: 0 },
@@ -63,7 +60,6 @@ const ExchangeManagement = () => {
     },
   });
 
-  // Update available pairs when from currency changes
   useEffect(() => {
     const fromCurrency = form.watch('fromCurrency');
     const availableTo = exchangePairs
@@ -72,14 +68,12 @@ const ExchangeManagement = () => {
     
     setAvailablePairs(availableTo);
     
-    // Reset toCurrency if it's not in the available pairs
     const currentToCurrency = form.watch('toCurrency');
     if (!availableTo.includes(currentToCurrency)) {
       form.setValue('toCurrency', availableTo[0] || '');
     }
   }, [form.watch('fromCurrency'), form]);
 
-  // Calculate exchange rate and converted amount
   useEffect(() => {
     const fromCurrency = form.watch('fromCurrency');
     const toCurrency = form.watch('toCurrency');
@@ -115,7 +109,6 @@ const ExchangeManagement = () => {
     const from = form.getValues('fromCurrency');
     const to = form.getValues('toCurrency');
     
-    // Check if the opposite pair exists
     const pairExists = exchangePairs.some(pair => pair.from === to && pair.to === from);
     
     if (pairExists) {
@@ -135,7 +128,6 @@ const ExchangeManagement = () => {
     setIsProcessing(true);
     
     try {
-      // Simulate exchange process
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setExchangeComplete(true);
@@ -146,7 +138,6 @@ const ExchangeManagement = () => {
         variant: "default"
       });
       
-      // Reset form after 3 seconds
       setTimeout(() => {
         form.reset({
           fromCurrency: 'USD',
@@ -263,7 +254,7 @@ const ExchangeManagement = () => {
                   onClick={handleSwapCurrencies}
                   className="rounded-full"
                 >
-                  <ChevronUpDownIcon className="h-5 w-5" />
+                  <ChevronsUpDown className="h-5 w-5" />
                 </Button>
               </div>
               
