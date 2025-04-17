@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -44,8 +43,36 @@ const LIMITS = {
   }
 };
 
+// Define specific types for each address type to solve TypeScript errors
+type BankTransferAddress = {
+  accountName: string;
+  accountNumber: string;
+  routingNumber: string;
+  bankName: string;
+  reference: string;
+};
+
+type CreditCardAddress = {
+  url: string;
+  reference: string;
+};
+
+type CryptoWalletAddress = {
+  btc: string;
+  eth: string;
+  usdt: string;
+  reference: string;
+};
+
+// Define a map of payment method IDs to their respective address types
+type DepositAddressMap = {
+  bank_transfer: BankTransferAddress;
+  credit_card: CreditCardAddress;
+  crypto_wallet: CryptoWalletAddress;
+};
+
 // Mock deposit addresses for different payment methods
-const depositAddresses = {
+const depositAddresses: DepositAddressMap = {
   bank_transfer: {
     accountName: "Tradelink Finance",
     accountNumber: "8762-5490-3219-0057",
@@ -169,19 +196,19 @@ const FundsManagement = () => {
   };
 
   const generateTransactionReference = () => {
-    const methodId = form.getValues('paymentMethod');
-    const prefix = depositAddresses[methodId as keyof typeof depositAddresses]?.reference || "TX-";
+    const methodId = form.getValues('paymentMethod') as keyof typeof depositAddresses;
+    const prefix = depositAddresses[methodId].reference || "TX-";
     return `${prefix}${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Date.now().toString().substring(9)}`;
   };
 
   const generateDepositAddress = () => {
-    const methodId = form.getValues('paymentMethod');
+    const methodId = form.getValues('paymentMethod') as keyof typeof depositAddresses;
     const reference = generateTransactionReference();
     setDepositReference(reference);
     setShowQrCode(true);
     
     return {
-      address: depositAddresses[methodId as keyof typeof depositAddresses],
+      address: depositAddresses[methodId],
       reference
     };
   };
@@ -207,26 +234,7 @@ const FundsManagement = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2500));
       
-      if (activeTab === 'deposit') {
-        await addFunds(usdAmount);
-        
-        clearInterval(processingInterval);
-        setProcessingProgress(100);
-        
-        setLastTransaction({
-          success: true,
-          type: 'deposit',
-          amount: usdAmount,
-          currency: values.currency,
-          reference: generateTransactionReference()
-        });
-        
-        toast({
-          title: "Deposit Successful",
-          description: `$${usdAmount.toFixed(2)} has been added to your account.`,
-          variant: "default"
-        });
-      } else {
+      if (activeTab === 'withdraw') {
         await withdrawFunds(usdAmount);
         
         clearInterval(processingInterval);
@@ -285,8 +293,8 @@ const FundsManagement = () => {
   };
 
   const renderQrCodeContent = () => {
-    const methodId = form.getValues('paymentMethod');
-    const address = depositAddresses[methodId as keyof typeof depositAddresses];
+    const methodId = form.getValues('paymentMethod') as keyof typeof depositAddresses;
+    const address = depositAddresses[methodId];
     
     if (!address) return null;
     
@@ -294,15 +302,18 @@ const FundsManagement = () => {
     let displayAddress = '';
     
     if (methodId === 'bank_transfer') {
-      qrValue = `Bank: ${address.bankName}\nAccount: ${address.accountNumber}\nRouting: ${address.routingNumber}\nRef: ${depositReference}`;
-      displayAddress = address.accountNumber;
+      const bankAddress = address as BankTransferAddress;
+      qrValue = `Bank: ${bankAddress.bankName}\nAccount: ${bankAddress.accountNumber}\nRouting: ${bankAddress.routingNumber}\nRef: ${depositReference}`;
+      displayAddress = bankAddress.accountNumber;
     } else if (methodId === 'credit_card') {
-      qrValue = `${address.url}?ref=${depositReference}`;
-      displayAddress = `${address.url}?ref=${depositReference}`;
+      const ccAddress = address as CreditCardAddress;
+      qrValue = `${ccAddress.url}?ref=${depositReference}`;
+      displayAddress = `${ccAddress.url}?ref=${depositReference}`;
     } else if (methodId === 'crypto_wallet') {
+      const cryptoAddress = address as CryptoWalletAddress;
       // For crypto, we'll use the ETH address as an example
-      qrValue = address.eth;
-      displayAddress = address.eth;
+      qrValue = cryptoAddress.eth;
+      displayAddress = cryptoAddress.eth;
     }
     
     return (
@@ -338,12 +349,16 @@ const FundsManagement = () => {
             <div className="w-full mt-4 grid grid-cols-2 gap-2">
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium">BTC: </span>
-                <span className="font-mono">{address.btc.substring(0, 8)}...{address.btc.substring(address.btc.length - 8)}</span>
+                {/* Type assertion to access crypto wallet specific properties */}
+                <span className="font-mono">
+                  {(address as CryptoWalletAddress).btc.substring(0, 8)}...
+                  {(address as CryptoWalletAddress).btc.substring((address as CryptoWalletAddress).btc.length - 8)}
+                </span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => copyToClipboard(address.btc)} 
+                onClick={() => copyToClipboard((address as CryptoWalletAddress).btc)} 
                 className="h-6 text-xs"
               >
                 <CopyIcon className="h-3 w-3 mr-1" /> Copy
@@ -351,12 +366,15 @@ const FundsManagement = () => {
               
               <div className="text-xs text-muted-foreground">
                 <span className="font-medium">USDT: </span>
-                <span className="font-mono">{address.usdt.substring(0, 8)}...{address.usdt.substring(address.usdt.length - 8)}</span>
+                <span className="font-mono">
+                  {(address as CryptoWalletAddress).usdt.substring(0, 8)}...
+                  {(address as CryptoWalletAddress).usdt.substring((address as CryptoWalletAddress).usdt.length - 8)}
+                </span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => copyToClipboard(address.usdt)} 
+                onClick={() => copyToClipboard((address as CryptoWalletAddress).usdt)} 
                 className="h-6 text-xs"
               >
                 <CopyIcon className="h-3 w-3 mr-1" /> Copy
