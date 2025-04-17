@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon, CreditCardIcon, BankIcon, WalletIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, CheckCircleIcon, AlertTriangleIcon, CreditCardIcon, BuildingBankIcon, WalletIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,7 +26,7 @@ const currencies = [
 ];
 
 const paymentMethods = [
-  { id: 'bank_transfer', name: 'Bank Transfer', icon: BankIcon, processingTime: '1-3 business days', fee: 0 },
+  { id: 'bank_transfer', name: 'Bank Transfer', icon: BuildingBankIcon, processingTime: '1-3 business days', fee: 0 },
   { id: 'credit_card', name: 'Credit Card', icon: CreditCardIcon, processingTime: 'Instant', fee: 2.5 },
   { id: 'crypto_wallet', name: 'Crypto Wallet', icon: WalletIcon, processingTime: '10-30 minutes', fee: 1 }
 ];
