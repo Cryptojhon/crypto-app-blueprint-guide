@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +5,7 @@ import { usePortfolio } from '@/contexts/PortfolioContext';
 import FundsManagement from '@/components/portfolio/FundsManagement';
 import ReferralSystem from '@/components/portfolio/ReferralSystem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, CoinsIcon, HistoryIcon, Wallet2Icon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, CoinsIcon, HistoryIcon, Wallet2Icon, CreditCardIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,7 +40,10 @@ const WalletManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Available Balance</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CreditCardIcon className="h-4 w-4 text-primary" />
+                  Available Balance
+                </CardTitle>
                 <CardDescription>Cash available for trading</CardDescription>
               </CardHeader>
               <CardContent>
