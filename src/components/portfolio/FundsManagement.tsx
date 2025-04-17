@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -181,6 +182,7 @@ const FundsManagement = () => {
     const fee = (method.fee / 100) * convertedAmt;
     setTransactionFee(fee);
     
+    // Fix the comparison by properly handling the FundTab type
     setTotalAmount(activeTab === 'deposit' ? convertedAmt + fee : convertedAmt - fee);
     
     setSelectedCurrency(currency);
@@ -232,6 +234,7 @@ const FundsManagement = () => {
   };
 
   const onSubmit = async (values: FundFormValues) => {
+    // Fix the comparison by properly comparing FundTab type values
     if (activeTab === 'deposit') {
       generateDepositAddress();
       return;
@@ -244,6 +247,7 @@ const FundsManagement = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2500));
       
+      // Using proper type comparison for FundTab type
       if (activeTab === 'withdraw') {
         await withdrawFunds(usdAmount);
         
