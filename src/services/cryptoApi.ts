@@ -1,7 +1,5 @@
-
 import { useEffect, useState } from 'react';
 
-// Mock crypto data
 export interface CryptoAsset {
   id: string;
   symbol: string;
@@ -17,201 +15,104 @@ export interface CryptoAsset {
   lastUpdated?: string;
 }
 
-// Mock data for the initial state
-export const mockCryptoAssets: CryptoAsset[] = [
-  {
-    id: "bitcoin",
-    symbol: "btc",
-    name: "Bitcoin",
-    image: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
-    currentPrice: 72450.32,
-    marketCap: 1421573583749,
-    marketCapRank: 1,
-    volume24h: 25228737242,
-    priceChange24h: 876.32,
-    priceChangePercentage24h: 1.23,
-    sparklineData: [69420, 70150, 71200, 70900, 72340, 72450.32],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "ethereum",
-    symbol: "eth",
-    name: "Ethereum",
-    image: "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
-    currentPrice: 3890.74,
-    marketCap: 467291053985,
-    marketCapRank: 2,
-    volume24h: 15643295032,
-    priceChange24h: -78.23,
-    priceChangePercentage24h: -1.97,
-    sparklineData: [3950, 3920, 3850, 3840, 3870, 3890.74],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "tether",
-    symbol: "usdt",
-    name: "Tether",
-    image: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
-    currentPrice: 1.00,
-    marketCap: 116956723742,
-    marketCapRank: 3,
-    volume24h: 48427638352,
-    priceChange24h: 0.001,
-    priceChangePercentage24h: 0.1,
-    sparklineData: [1, 1, 1, 1, 1, 1],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "bnb",
-    symbol: "bnb",
-    name: "BNB",
-    image: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
-    currentPrice: 598.32,
-    marketCap: 89748523695,
-    marketCapRank: 4,
-    volume24h: 1526738294,
-    priceChange24h: 12.43,
-    priceChangePercentage24h: 2.12,
-    sparklineData: [580, 585, 590, 587, 595, 598.32],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "solana",
-    symbol: "sol",
-    name: "Solana",
-    image: "https://assets.coingecko.com/coins/images/4128/large/solana.png",
-    currentPrice: 157.89,
-    marketCap: 69748523215,
-    marketCapRank: 5,
-    volume24h: 2953841253,
-    priceChange24h: 4.21,
-    priceChangePercentage24h: 2.74,
-    sparklineData: [150, 152, 155, 153, 156, 157.89],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "xrp",
-    symbol: "xrp",
-    name: "XRP",
-    image: "https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png",
-    currentPrice: 0.58,
-    marketCap: 31716782364,
-    marketCapRank: 6,
-    volume24h: 1208473621,
-    priceChange24h: -0.02,
-    priceChangePercentage24h: -3.33,
-    sparklineData: [0.60, 0.59, 0.58, 0.57, 0.58, 0.58],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "cardano",
-    symbol: "ada",
-    name: "Cardano",
-    image: "https://assets.coingecko.com/coins/images/975/large/cardano.png",
-    currentPrice: 0.47,
-    marketCap: 16519273695,
-    marketCapRank: 7,
-    volume24h: 426738294,
-    priceChange24h: 0.02,
-    priceChangePercentage24h: 4.44,
-    sparklineData: [0.45, 0.46, 0.46, 0.47, 0.47, 0.47],
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "dogecoin",
-    symbol: "doge",
-    name: "Dogecoin",
-    image: "https://assets.coingecko.com/coins/images/5/large/dogecoin.png",
-    currentPrice: 0.12,
-    marketCap: 15748523695,
-    marketCapRank: 8,
-    volume24h: 726738294,
-    priceChange24h: -0.01,
-    priceChangePercentage24h: -7.69,
-    sparklineData: [0.13, 0.13, 0.12, 0.12, 0.12, 0.12],
-    lastUpdated: new Date().toISOString(),
-  }
-];
+const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3';
 
-// Function to update market data randomly (simulating real-time changes)
-const updateMarketData = (assets: CryptoAsset[]): CryptoAsset[] => {
-  return assets.map(asset => {
-    // Random market cap fluctuation (±2%)
-    const marketCapChange = asset.marketCap * (Math.random() * 0.04 - 0.02);
-    const newMarketCap = Math.max(asset.marketCap + marketCapChange, asset.marketCap * 0.95);
+const formatCryptoAsset = (coin: any): CryptoAsset => ({
+  id: coin.id,
+  symbol: coin.symbol,
+  name: coin.name,
+  image: coin.image,
+  currentPrice: coin.current_price,
+  marketCap: coin.market_cap,
+  marketCapRank: coin.market_cap_rank,
+  volume24h: coin.total_volume,
+  priceChange24h: coin.price_change_24h,
+  priceChangePercentage24h: coin.price_change_percentage_24h,
+  lastUpdated: coin.last_updated,
+  sparklineData: coin.sparkline_in_7d?.price
+});
 
-    // Random price fluctuation (±1.5%)
-    const priceChange = asset.currentPrice * (Math.random() * 0.03 - 0.015);
-    const newPrice = Math.max(asset.currentPrice + priceChange, asset.currentPrice * 0.97);
-
-    // Update sparkline data
-    const newSparklineData = [...(asset.sparklineData || [])];
-    if (newSparklineData.length > 30) {
-      newSparklineData.shift();
+// Function to fetch market data
+export const fetchMarketData = async (): Promise<CryptoAsset[]> => {
+  try {
+    const response = await fetch(
+      `${COINGECKO_API_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
     }
-    newSparklineData.push(newPrice);
 
-    return {
-      ...asset,
-      marketCap: newMarketCap,
-      currentPrice: newPrice,
-      priceChange24h: priceChange,
-      priceChangePercentage24h: (priceChange / asset.currentPrice) * 100,
-      sparklineData: newSparklineData,
-      lastUpdated: new Date().toISOString(),
-    };
-  });
+    const data = await response.json();
+    return data.map(formatCryptoAsset);
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    throw error;
+  }
 };
 
-// Hook for getting real-time market data
-export const useMarketData = (updateInterval = 10000) => {
-  const [assets, setAssets] = useState<CryptoAsset[]>(mockCryptoAssets);
+// Function to fetch single asset details
+export const fetchAssetDetails = async (id: string): Promise<CryptoAsset | undefined> => {
+  try {
+    const response = await fetch(
+      `${COINGECKO_API_URL}/coins/${id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const data = await response.json();
+    return {
+      id: data.id,
+      symbol: data.symbol,
+      name: data.name,
+      image: data.image.large,
+      currentPrice: data.market_data.current_price.usd,
+      marketCap: data.market_data.market_cap.usd,
+      marketCapRank: data.market_cap_rank,
+      volume24h: data.market_data.total_volume.usd,
+      priceChange24h: data.market_data.price_change_24h,
+      priceChangePercentage24h: data.market_data.price_change_percentage_24h,
+      lastUpdated: data.last_updated,
+      sparklineData: data.market_data.sparkline_7d?.price
+    };
+  } catch (error) {
+    console.error('Error fetching asset details:', error);
+    throw error;
+  }
+};
+
+// Hook for real-time market data
+export const useMarketData = (updateInterval = 30000) => {
+  const [assets, setAssets] = useState<CryptoAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initial fetch
-    setIsLoading(true);
-    fetchMarketData()
-      .then(data => {
+    const fetchData = async () => {
+      try {
+        const data = await fetchMarketData();
         setAssets(data);
-        setIsLoading(false);
-      })
-      .catch(err => {
+        setError(null);
+      } catch (err) {
+        setError('Failed to fetch market data');
         console.error('Error fetching market data:', err);
-        setError('Failed to load market data');
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
 
-    // Set up regular updates
-    const intervalId = setInterval(() => {
-      setAssets(prev => updateMarketData(prev));
-    }, updateInterval);
+    // Initial fetch
+    fetchData();
+
+    // Set up polling
+    const intervalId = setInterval(fetchData, updateInterval);
 
     return () => clearInterval(intervalId);
   }, [updateInterval]);
 
   return { assets, isLoading, error };
-};
-
-// Mock API for getting market data
-export const fetchMarketData = async (): Promise<CryptoAsset[]> => {
-  // Normally here you'd call a real API, but for demo purposes we'll use mock data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockCryptoAssets);
-    }, 500); // Simulate network delay
-  });
-};
-
-// Mock API for getting asset details
-export const fetchAssetDetails = async (id: string): Promise<CryptoAsset | undefined> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const asset = mockCryptoAssets.find(asset => asset.id === id);
-      resolve(asset);
-    }, 500);
-  });
 };
 
 // Generate mock chart data points
