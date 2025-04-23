@@ -1,4 +1,6 @@
 
+import { useEffect, useState } from 'react';
+
 // Mock crypto data
 export interface CryptoAsset {
   id: string;
@@ -12,6 +14,7 @@ export interface CryptoAsset {
   priceChange24h: number;
   priceChangePercentage24h: number;
   sparklineData?: number[];
+  lastUpdated?: string;
 }
 
 // Mock data for the initial state
@@ -28,6 +31,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: 876.32,
     priceChangePercentage24h: 1.23,
     sparklineData: [69420, 70150, 71200, 70900, 72340, 72450.32],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "ethereum",
@@ -41,6 +45,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: -78.23,
     priceChangePercentage24h: -1.97,
     sparklineData: [3950, 3920, 3850, 3840, 3870, 3890.74],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "tether",
@@ -54,6 +59,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: 0.001,
     priceChangePercentage24h: 0.1,
     sparklineData: [1, 1, 1, 1, 1, 1],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "bnb",
@@ -67,6 +73,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: 12.43,
     priceChangePercentage24h: 2.12,
     sparklineData: [580, 585, 590, 587, 595, 598.32],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "solana",
@@ -80,6 +87,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: 4.21,
     priceChangePercentage24h: 2.74,
     sparklineData: [150, 152, 155, 153, 156, 157.89],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "xrp",
@@ -93,6 +101,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: -0.02,
     priceChangePercentage24h: -3.33,
     sparklineData: [0.60, 0.59, 0.58, 0.57, 0.58, 0.58],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "cardano",
@@ -106,6 +115,7 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: 0.02,
     priceChangePercentage24h: 4.44,
     sparklineData: [0.45, 0.46, 0.46, 0.47, 0.47, 0.47],
+    lastUpdated: new Date().toISOString(),
   },
   {
     id: "dogecoin",
@@ -119,8 +129,70 @@ export const mockCryptoAssets: CryptoAsset[] = [
     priceChange24h: -0.01,
     priceChangePercentage24h: -7.69,
     sparklineData: [0.13, 0.13, 0.12, 0.12, 0.12, 0.12],
+    lastUpdated: new Date().toISOString(),
   }
 ];
+
+// Function to update market data randomly (simulating real-time changes)
+const updateMarketData = (assets: CryptoAsset[]): CryptoAsset[] => {
+  return assets.map(asset => {
+    // Random market cap fluctuation (±2%)
+    const marketCapChange = asset.marketCap * (Math.random() * 0.04 - 0.02);
+    const newMarketCap = Math.max(asset.marketCap + marketCapChange, asset.marketCap * 0.95);
+
+    // Random price fluctuation (±1.5%)
+    const priceChange = asset.currentPrice * (Math.random() * 0.03 - 0.015);
+    const newPrice = Math.max(asset.currentPrice + priceChange, asset.currentPrice * 0.97);
+
+    // Update sparkline data
+    const newSparklineData = [...(asset.sparklineData || [])];
+    if (newSparklineData.length > 30) {
+      newSparklineData.shift();
+    }
+    newSparklineData.push(newPrice);
+
+    return {
+      ...asset,
+      marketCap: newMarketCap,
+      currentPrice: newPrice,
+      priceChange24h: priceChange,
+      priceChangePercentage24h: (priceChange / asset.currentPrice) * 100,
+      sparklineData: newSparklineData,
+      lastUpdated: new Date().toISOString(),
+    };
+  });
+};
+
+// Hook for getting real-time market data
+export const useMarketData = (updateInterval = 10000) => {
+  const [assets, setAssets] = useState<CryptoAsset[]>(mockCryptoAssets);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Initial fetch
+    setIsLoading(true);
+    fetchMarketData()
+      .then(data => {
+        setAssets(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching market data:', err);
+        setError('Failed to load market data');
+        setIsLoading(false);
+      });
+
+    // Set up regular updates
+    const intervalId = setInterval(() => {
+      setAssets(prev => updateMarketData(prev));
+    }, updateInterval);
+
+    return () => clearInterval(intervalId);
+  }, [updateInterval]);
+
+  return { assets, isLoading, error };
+};
 
 // Mock API for getting market data
 export const fetchMarketData = async (): Promise<CryptoAsset[]> => {

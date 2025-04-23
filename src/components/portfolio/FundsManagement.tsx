@@ -13,10 +13,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PaymentMethod, FundTab, paymentMethods } from '@/types/payment';
+import { PaymentMethod, FundTab } from '@/types/payment';
 import { Image } from '@/components/ui/image';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { QRCodeSVG } from 'qrcode.react';
 
 // Add transaction reference to the interface
 interface LastTransaction {
@@ -42,6 +43,50 @@ const fundSchema = z.object({
   })
 });
 
+// Cryptocurrency payment methods
+const cryptoPayments = [
+  { 
+    id: 'bitcoin', 
+    name: 'Bitcoin (BTC)', 
+    processingTime: '10-30 min', 
+    fee: 1.8,
+    address: '3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5',
+    qrValue: 'bitcoin:3FZbgi29cpjq2GjdwV8eyHuJJnkLtktZc5'
+  },
+  { 
+    id: 'ethereum', 
+    name: 'Ethereum (ETH)', 
+    processingTime: '5-10 min', 
+    fee: 1.8,
+    address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+    qrValue: 'ethereum:0x71C7656EC7ab88b098defB751B7401B5f6d8976F'
+  },
+  { 
+    id: 'bnb', 
+    name: 'BNB', 
+    processingTime: '3-8 min', 
+    fee: 1.5,
+    address: 'bnb1m4m9etgf3ca5wpgkqe5nr6r33a4ynyd2cagm5h',
+    qrValue: 'bnb:bnb1m4m9etgf3ca5wpgkqe5nr6r33a4ynyd2cagm5h'
+  },
+  { 
+    id: 'usdt', 
+    name: 'Tether (USDT)', 
+    processingTime: '5-15 min', 
+    fee: 1.2,
+    address: 'TEwRGKuHQtshchpJstVKBnZvr3oUcnC6t3',
+    qrValue: 'tether:TEwRGKuHQtshchpJstVKBnZvr3oUcnC6t3'
+  },
+  { 
+    id: 'solana', 
+    name: 'Solana (SOL)', 
+    processingTime: '1-5 min', 
+    fee: 1.5,
+    address: 'DyGvW5nxCQrwgXbFDEbLTbS6NyGTm9BaVVSTmkgALi3S',
+    qrValue: 'solana:DyGvW5nxCQrwgXbFDEbLTbS6NyGTm9BaVVSTmkgALi3S'
+  }
+];
+
 type FundFormValues = z.infer<typeof fundSchema>;
 
 const FundsManagement = () => {
@@ -52,7 +97,7 @@ const FundsManagement = () => {
   const [showQRCode, setShowQRCode] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [lastTransaction, setLastTransaction] = useState<LastTransaction | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethods[0]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(cryptoPayments[0]);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   const form = useForm<FundFormValues>({
@@ -66,8 +111,8 @@ const FundsManagement = () => {
   });
 
   useEffect(() => {
-    const methodId = form.watch('paymentMethod') as PaymentMethod;
-    const method = paymentMethods.find(m => m.id === methodId) || paymentMethods[0];
+    const methodId = form.watch('paymentMethod');
+    const method = cryptoPayments.find(m => m.id === methodId) || cryptoPayments[0];
     setSelectedPaymentMethod(method);
   }, [form.watch('paymentMethod')]);
 
@@ -104,13 +149,14 @@ const FundsManagement = () => {
   };
 
   const onSubmit = async (values: FundFormValues) => {
-    // Use strictly typed condition to avoid the TypeScript error
+    // Use type guard with string literal to avoid type errors
     if (activeTab === 'deposit') {
       setShowQRCode(true);
       return;
     }
     
-    if (activeTab === 'withdraw' && !values.screenshot) {
+    // This is for withdraw flow
+    if (!values.screenshot) {
       toast({
         title: "Screenshot Required",
         description: "Please upload a screenshot of your payment confirmation",
@@ -126,7 +172,7 @@ const FundsManagement = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2500));
       
-      // Check activeTab value explicitly using type-safe comparison
+      // Use type guard with string literal to avoid type errors
       if (activeTab === 'withdraw') {
         await withdrawFunds(amount);
         clearInterval(processingInterval);
@@ -290,7 +336,7 @@ const FundsManagement = () => {
                         defaultValue={field.value}
                         className="flex flex-col space-y-1"
                       >
-                        {paymentMethods.map((method) => (
+                        {cryptoPayments.map((method) => (
                           <FormItem className="flex items-center space-x-3 space-y-0" key={method.id}>
                             <FormControl>
                               <RadioGroupItem value={method.id} />
@@ -409,11 +455,15 @@ const FundsManagement = () => {
               Please send {form.watch('amount')} USD worth of {selectedPaymentMethod.name} to the following address:
             </DialogDescription>
             <div className="flex flex-col items-center space-y-4">
-              <div className="w-full max-w-sm">
-                <Image
-                  src={selectedPaymentMethod.imageUrl}
-                  alt={`${selectedPaymentMethod.name} QR Code`}
-                  className="w-full h-auto aspect-square rounded-lg"
+              <div className="w-full max-w-sm bg-white p-4 rounded-lg">
+                <QRCodeSVG
+                  value={`${selectedPaymentMethod.qrValue}?amount=${form.watch('amount')}`}
+                  size={250}
+                  bgColor={"#ffffff"}
+                  fgColor={"#000000"}
+                  level={"L"}
+                  includeMargin={true}
+                  className="w-full h-auto"
                 />
               </div>
               <div className="w-full">
