@@ -70,21 +70,22 @@ const FundsManagement = () => {
       return;
     }
 
-    if (!values.screenshot) {
-      toast({
-        title: "Screenshot Required",
-        description: "Please upload a screenshot of your payment confirmation",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsProcessing(true);
-    const amount = Number(values.amount);
-    const processingInterval = simulateProcessing();
-    
-    try {
-      if (activeTab === 'withdraw') {
+    // Here we're explicitly checking if activeTab is 'withdraw'
+    if (activeTab === 'withdraw') {
+      if (!values.screenshot) {
+        toast({
+          title: "Screenshot Required",
+          description: "Please upload a screenshot of your payment confirmation",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsProcessing(true);
+      const amount = Number(values.amount);
+      const processingInterval = simulateProcessing();
+      
+      try {
         await withdrawFunds(amount);
         clearInterval(processingInterval);
         setProcessingProgress(100);
@@ -94,23 +95,23 @@ const FundsManagement = () => {
           description: `$${amount.toFixed(2)} withdrawal has been processed.`,
           variant: "default"
         });
+        
+        form.reset();
+        setScreenshotPreview(null);
+      } catch (error) {
+        console.error('Transaction error:', error);
+        
+        clearInterval(processingInterval);
+        setProcessingProgress(0);
+        
+        toast({
+          title: 'Withdrawal Failed',
+          description: 'There was an error processing your transaction. Please try again.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsProcessing(false);
       }
-      
-      form.reset();
-      setScreenshotPreview(null);
-    } catch (error) {
-      console.error('Transaction error:', error);
-      
-      clearInterval(processingInterval);
-      setProcessingProgress(0);
-      
-      toast({
-        title: activeTab === 'deposit' ? 'Deposit Failed' : 'Withdrawal Failed',
-        description: 'There was an error processing your transaction. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 

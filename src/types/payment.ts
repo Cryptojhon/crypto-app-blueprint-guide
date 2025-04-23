@@ -10,6 +10,7 @@ export interface PaymentMethodConfig {
   fee: number;
   address: string;
   imageUrl: string;
+  qrValue: string; // Added qrValue property
 }
 
 export const paymentMethods: PaymentMethodConfig[] = [
@@ -20,7 +21,8 @@ export const paymentMethods: PaymentMethodConfig[] = [
     processingTime: '10-30 minutes',
     fee: 0.1,
     address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-    imageUrl: '/images/payment/btc-qr.png'
+    imageUrl: '/images/payment/btc-qr.png',
+    qrValue: 'bitcoin:bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
   },
   {
     id: 'bnb',
@@ -29,7 +31,8 @@ export const paymentMethods: PaymentMethodConfig[] = [
     processingTime: '5-10 minutes',
     fee: 0.1,
     address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    imageUrl: '/images/payment/bnb-qr.png'
+    imageUrl: '/images/payment/bnb-qr.png',
+    qrValue: 'bnb:0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
   },
   {
     id: 'solana',
@@ -38,7 +41,8 @@ export const paymentMethods: PaymentMethodConfig[] = [
     processingTime: '1-2 minutes',
     fee: 0.1,
     address: '7cKC5UDenda6F3JP2qvPiWnRqqKy6qVJqGnbwrvzmJRy',
-    imageUrl: '/images/payment/sol-qr.png'
+    imageUrl: '/images/payment/sol-qr.png',
+    qrValue: 'solana:7cKC5UDenda6F3JP2qvPiWnRqqKy6qVJqGnbwrvzmJRy'
   },
   {
     id: 'usdt',
@@ -47,7 +51,8 @@ export const paymentMethods: PaymentMethodConfig[] = [
     processingTime: '10-30 minutes',
     fee: 1.0,
     address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    imageUrl: '/images/payment/usdt-qr.png'
+    imageUrl: '/images/payment/usdt-qr.png',
+    qrValue: 'ethereum:0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
   },
   {
     id: 'core',
@@ -56,6 +61,7 @@ export const paymentMethods: PaymentMethodConfig[] = [
     processingTime: '5-10 minutes',
     fee: 0.1,
     address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    imageUrl: '/images/payment/core-qr.png'
+    imageUrl: '/images/payment/core-qr.png',
+    qrValue: 'core:0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
   }
 ];
