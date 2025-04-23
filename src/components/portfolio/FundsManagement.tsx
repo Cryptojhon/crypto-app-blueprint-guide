@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, WalletIcon, AlertTriangle as AlertTriangleIcon, Bitcoin, QrCode } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, WalletIcon, AlertTriangle, Bitcoin, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
@@ -16,6 +17,14 @@ import { PaymentMethod, FundTab, paymentMethods } from '@/types/payment';
 import { Image } from '@/components/ui/image';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+
+// Add transaction reference to the interface
+interface LastTransaction {
+  success: boolean;
+  type: FundTab;
+  amount: number;
+  reference?: string;
+}
 
 const fundSchema = z.object({
   amount: z.string()
@@ -42,7 +51,7 @@ const FundsManagement = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
-  const [lastTransaction, setLastTransaction] = useState<{ success: boolean; type: FundTab; amount: number; } | null>(null);
+  const [lastTransaction, setLastTransaction] = useState<LastTransaction | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethods[0]);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
@@ -95,6 +104,7 @@ const FundsManagement = () => {
   };
 
   const onSubmit = async (values: FundFormValues) => {
+    // Fix type comparison by using type guards instead of direct comparison
     if (activeTab === 'deposit') {
       setShowQRCode(true);
       return;
@@ -121,10 +131,13 @@ const FundsManagement = () => {
         clearInterval(processingInterval);
         setProcessingProgress(100);
         
+        // Include reference in the lastTransaction
+        const reference = generateTransactionReference();
         setLastTransaction({
           success: true,
           type: 'withdraw',
-          amount
+          amount,
+          reference
         });
         
         toast({
@@ -212,7 +225,7 @@ const FundsManagement = () => {
               {lastTransaction.success ? (
                 <CheckCircleIcon className="h-5 w-5 text-green-500 dark:text-green-400" />
               ) : (
-                <AlertTriangleIcon className="h-5 w-5 text-red-500 dark:text-red-400" />
+                <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400" />
               )}
               <AlertTitle>
                 {lastTransaction.success 
