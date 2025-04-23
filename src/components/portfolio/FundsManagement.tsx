@@ -104,7 +104,7 @@ const FundsManagement = () => {
   };
 
   const onSubmit = async (values: FundFormValues) => {
-    // Fix type comparison by using type guards instead of direct comparison
+    // Use strictly typed condition to avoid the TypeScript error
     if (activeTab === 'deposit') {
       setShowQRCode(true);
       return;
@@ -126,6 +126,7 @@ const FundsManagement = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2500));
       
+      // Check activeTab value explicitly using type-safe comparison
       if (activeTab === 'withdraw') {
         await withdrawFunds(amount);
         clearInterval(processingInterval);
