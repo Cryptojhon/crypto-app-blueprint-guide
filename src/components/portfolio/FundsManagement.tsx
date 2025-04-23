@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -8,12 +7,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowUpIcon, ArrowDownIcon, RepeatIcon, CheckCircleIcon, WalletIcon, ImageIcon, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, WalletIcon, AlertTriangle as AlertTriangleIcon, Bitcoin, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PaymentMethod, FundTab, paymentMethods } from '@/types/payment';
 import { Image } from '@/components/ui/image';
@@ -30,7 +27,7 @@ const fundSchema = z.object({
     }),
   currency: z.string().default('USD'),
   paymentMethod: z.string(),
-  saveMethod: z.boolean().optional(),
+  screenshot: z.instanceof(File).optional(),
   agreedToTerms: z.boolean().refine((val) => val === true, {
     message: "You must agree to the terms and conditions"
   })
@@ -38,52 +35,44 @@ const fundSchema = z.object({
 
 type FundFormValues = z.infer<typeof fundSchema>;
 
-interface TransactionData {
-  success: boolean;
-  type: FundTab;
-  amount: number;
-  currency: string;
-  reference?: string;
-}
-
 const FundsManagement = () => {
   const { toast } = useToast();
   const { balance, addFunds, withdrawFunds } = usePortfolio();
   const [activeTab, setActiveTab] = useState<FundTab>('deposit');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPaymentImage, setShowPaymentImage] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethods[0]);
-  const [lastTransaction, setLastTransaction] = useState<TransactionData | null>(null);
+  const [showQRCode, setShowQRCode] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [lastTransaction, setLastTransaction] = useState<{ success: boolean; type: FundTab; amount: number; } | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethods[0]);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
 
   const form = useForm<FundFormValues>({
     resolver: zodResolver(fundSchema),
     defaultValues: {
       amount: '',
       currency: 'USD',
-      paymentMethod: 'evc',
-      saveMethod: false,
+      paymentMethod: 'bitcoin',
       agreedToTerms: false
     },
   });
 
   useEffect(() => {
-    form.reset({
-      amount: '',
-      currency: 'USD',
-      paymentMethod: 'evc',
-      saveMethod: false,
-      agreedToTerms: false
-    });
-    setLastTransaction(null);
-    setProcessingProgress(0);
-  }, [activeTab, form]);
-
-  useEffect(() => {
-    const methodId = form.watch('paymentMethod');
+    const methodId = form.watch('paymentMethod') as PaymentMethod;
     const method = paymentMethods.find(m => m.id === methodId) || paymentMethods[0];
     setSelectedPaymentMethod(method);
   }, [form.watch('paymentMethod')]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setScreenshotPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('screenshot', file);
+    }
+  };
 
   const simulateProcessing = () => {
     setProcessingProgress(0);
@@ -107,7 +96,16 @@ const FundsManagement = () => {
 
   const onSubmit = async (values: FundFormValues) => {
     if (activeTab === 'deposit') {
-      setShowPaymentImage(true);
+      setShowQRCode(true);
+      return;
+    }
+    
+    if (activeTab === 'withdraw' && !values.screenshot) {
+      toast({
+        title: "Screenshot Required",
+        description: "Please upload a screenshot of your payment confirmation",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -126,9 +124,7 @@ const FundsManagement = () => {
         setLastTransaction({
           success: true,
           type: 'withdraw',
-          amount,
-          currency: values.currency,
-          reference: generateTransactionReference()
+          amount
         });
         
         toast({
@@ -139,6 +135,7 @@ const FundsManagement = () => {
       }
       
       form.reset();
+      setScreenshotPreview(null);
     } catch (error) {
       console.error('Transaction error:', error);
       
@@ -148,8 +145,7 @@ const FundsManagement = () => {
       setLastTransaction({
         success: false,
         type: activeTab,
-        amount,
-        currency: values.currency
+        amount
       });
       
       toast({
@@ -267,58 +263,72 @@ const FundsManagement = () => {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Payment Method</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      {paymentMethods.map((method) => (
-                        <FormItem className="flex items-center space-x-3 space-y-0" key={method.id}>
-                          <FormControl>
-                            <RadioGroupItem value={method.id} />
-                          </FormControl>
-                          <FormLabel className="flex items-center space-x-2 cursor-pointer font-normal">
-                            <ImageIcon className="h-4 w-4" />
-                            <span>{method.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({method.processingTime}{method.fee > 0 ? `, ${method.fee}% fee` : ''})
-                            </span>
-                          </FormLabel>
-                        </FormItem>
-                      ))}
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {activeTab === 'deposit' && (
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Select Cryptocurrency</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                      >
+                        {paymentMethods.map((method) => (
+                          <FormItem className="flex items-center space-x-3 space-y-0" key={method.id}>
+                            <FormControl>
+                              <RadioGroupItem value={method.id} />
+                            </FormControl>
+                            <FormLabel className="flex items-center space-x-2 cursor-pointer font-normal">
+                              <Bitcoin className="h-4 w-4" />
+                              <span>{method.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({method.processingTime}{method.fee > 0 ? `, ${method.fee}% fee` : ''})
+                              </span>
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-            <FormField
-              control={form.control}
-              name="saveMethod"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Save payment method for future transactions
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
+            {activeTab === 'withdraw' && (
+              <FormField
+                control={form.control}
+                name="screenshot"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Upload Payment Screenshot</FormLabel>
+                    <FormControl>
+                      <div className="space-y-4">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="cursor-pointer"
+                        />
+                        {screenshotPreview && (
+                          <div className="mt-2">
+                            <img
+                              src={screenshotPreview}
+                              alt="Payment Screenshot"
+                              className="max-w-full h-auto rounded-lg border"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <FormField
               control={form.control}
@@ -326,9 +336,11 @@ const FundsManagement = () => {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                   <FormControl>
-                    <Checkbox
+                    <input
+                      type="checkbox"
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onChange={field.onChange}
+                      className="form-checkbox"
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -348,7 +360,8 @@ const FundsManagement = () => {
                 isProcessing || 
                 !form.watch('amount') || 
                 Number(form.watch('amount')) <= 0 ||
-                !form.watch('agreedToTerms')
+                !form.watch('agreedToTerms') ||
+                (activeTab === 'withdraw' && !form.watch('screenshot'))
               }
             >
               {isProcessing ? (
@@ -358,32 +371,48 @@ const FundsManagement = () => {
                 </span>
               ) : (
                 <span className="flex items-center justify-center">
-                  {activeTab === 'deposit' ? <ArrowUpIcon className="mr-2 h-4 w-4" /> : <ArrowDownIcon className="mr-2 h-4 w-4" />}
-                  {activeTab === 'deposit' ? 'Show Payment Instructions' : 'Withdraw Funds'}
+                  {activeTab === 'deposit' ? (
+                    <>
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Show Payment QR Code
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownIcon className="mr-2 h-4 w-4" />
+                      Withdraw Funds
+                    </>
+                  )}
                 </span>
               )}
             </Button>
           </form>
         </Form>
 
-        <Dialog open={showPaymentImage} onOpenChange={setShowPaymentImage}>
+        <Dialog open={showQRCode} onOpenChange={setShowQRCode}>
           <DialogContent>
             <DialogTitle>{selectedPaymentMethod.name} Payment Instructions</DialogTitle>
             <DialogDescription>
-              Please send {form.watch('amount')} USD to the following account:
+              Please send {form.watch('amount')} USD worth of {selectedPaymentMethod.name} to the following address:
             </DialogDescription>
             <div className="flex flex-col items-center space-y-4">
               <div className="w-full max-w-sm">
                 <Image
                   src={selectedPaymentMethod.imageUrl}
                   alt={`${selectedPaymentMethod.name} QR Code`}
-                  className="w-full h-auto"
+                  className="w-full h-auto aspect-square rounded-lg"
                 />
               </div>
+              <div className="w-full">
+                <p className="text-sm font-medium mb-1">Wallet Address:</p>
+                <code className="block w-full p-2 bg-muted rounded text-sm break-all">
+                  {selectedPaymentMethod.address}
+                </code>
+              </div>
               <p className="text-sm text-center text-muted-foreground">
-                After sending the payment, please take a screenshot of the confirmation and send it to our support team.
+                After sending the payment, please take a screenshot of the confirmation
+                and keep it for your records.
               </p>
-              <Button onClick={() => setShowPaymentImage(false)}>Close</Button>
+              <Button onClick={() => setShowQRCode(false)}>Close</Button>
             </div>
           </DialogContent>
         </Dialog>
