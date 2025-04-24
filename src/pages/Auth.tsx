@@ -75,67 +75,20 @@ const Auth = () => {
       return;
     }
 
-    if (!isLogin && !validatePassword(password)) {
-      setAuthError('Password must be at least 8 characters long, contain uppercase, lowercase, and a number');
-      setIsSubmitting(false);
-      return;
-    }
-    
     try {
-      if (isLogin) {
-        await signIn(email, password);
-      } else {
-        if (!username || !fullName || !phoneNumber || !district) {
-          setAuthError('All fields are required');
-          setIsSubmitting(false);
-          return;
-        }
+      await signIn(email, password);
+      
+      // Check if user is admin after sign in
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .single();
 
-        if (!phoneNumber.match(/^\+252[1-9][0-9]{8}$/)) {
-          setAuthError('Please enter a valid Somalia phone number (+252XXXXXXXXX)');
-          setIsSubmitting(false);
-          return;
-        }
-
-        const userData = {
-          username,
-          full_name: fullName,
-          phone_number: phoneNumber,
-          district
-        };
-
-        if (referralCode) {
-          Object.assign(userData, { referred_by: referralCode });
-        }
-
-        await signUp(email, password, userData);
-        
-        if (referralCode) {
-          setTimeout(async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            if (session?.user) {
-              const { data: referralData } = await supabase
-                .from('referrals')
-                .select('user_id')
-                .eq('code', referralCode)
-                .maybeSingle();
-                
-              if (referralData) {
-                await supabase.from('referrals_used').insert({
-                  referrer_id: referralData.user_id,
-                  referred_id: session.user.id,
-                  referral_code: referralCode
-                });
-                
-                await supabase
-                  .from('profiles')
-                  .update({ balance: 5 })
-                  .eq('id', session.user.id);
-              }
-            }
-          }, 2000);
-        }
+      if (profile?.role === 'admin') {
+        toast({
+          title: "Welcome Admin",
+          description: "You have successfully signed in as an administrator.",
+        });
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
