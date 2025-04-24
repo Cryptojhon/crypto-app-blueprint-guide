@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,7 @@ import { PortfolioProvider } from "./contexts/PortfolioContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/RequireAuth";
 import AdminSignup from "./pages/AdminSignup";
+import AdminDashboard from "./pages/admin/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -27,47 +29,18 @@ const App = () => (
             <Sonner />
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/"
-                element={
-                  <RequireAuth>
-                    <Index />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/asset/:id"
-                element={
-                  <RequireAuth>
-                    <AssetDetail />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/wallet"
-                element={
-                  <RequireAuth>
-                    <WalletManagement />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/transactions"
-                element={
-                  <RequireAuth>
-                    <TransactionHistory />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <RequireAuth>
-                    <ProfileManagement />
-                  </RequireAuth>
-                }
-              />
               <Route path="/admin-signup" element={<AdminSignup />} />
+              
+              {/* Protected Routes */}
+              <Route path="/" element={<RequireAuth><Index /></RequireAuth>} />
+              <Route path="/asset/:id" element={<RequireAuth><AssetDetail /></RequireAuth>} />
+              <Route path="/wallet" element={<RequireAuth><WalletManagement /></RequireAuth>} />
+              <Route path="/transactions" element={<RequireAuth><TransactionHistory /></RequireAuth>} />
+              <Route path="/profile" element={<RequireAuth><ProfileManagement /></RequireAuth>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin/dashboard" element={<RequireAuth adminOnly><AdminDashboard /></RequireAuth>} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </PortfolioProvider>
