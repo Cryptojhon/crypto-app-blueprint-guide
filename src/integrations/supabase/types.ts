@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      membership_levels: {
+        Row: {
+          cost: number
+          id: number
+          name: string
+          payments_count: number
+          total_value: number
+        }
+        Insert: {
+          cost: number
+          id?: number
+          name: string
+          payments_count: number
+          total_value: number
+        }
+        Update: {
+          cost?: number
+          id?: number
+          name?: string
+          payments_count?: number
+          total_value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           balance: number
@@ -20,6 +44,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           username: string
+          withdrawal_address: string | null
         }
         Insert: {
           balance?: number
@@ -31,6 +56,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           username: string
+          withdrawal_address?: string | null
         }
         Update: {
           balance?: number
@@ -42,6 +68,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           username?: string
+          withdrawal_address?: string | null
         }
         Relationships: []
       }
@@ -125,6 +152,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_memberships: {
+        Row: {
+          created_at: string | null
+          id: string
+          level_id: number
+          payments_received: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          level_id: number
+          payments_received?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          level_id?: number
+          payments_received?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memberships_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "membership_levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallets: {
         Row: {

@@ -1,4 +1,3 @@
-
 export type PaymentMethod = 'bitcoin' | 'bnb' | 'solana' | 'usdt' | 'core';
 export type FundTab = 'deposit' | 'withdraw';
 
@@ -65,3 +64,11 @@ export const paymentMethods: PaymentMethodConfig[] = [
     qrValue: 'core:0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
   }
 ];
+
+export interface MembershipLevel {
+  id: number;
+  name: string;
+  cost: number;
+  paymentsCount: number;
+  totalValue: number;
+}

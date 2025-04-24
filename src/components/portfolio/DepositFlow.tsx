@@ -1,23 +1,32 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Bitcoin } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { PaymentMethodConfig } from '@/types/payment';
 import { UseFormReturn } from 'react-hook-form';
 import { FundFormValues } from './types';
+import { Bitcoin } from 'lucide-react';
 
 interface DepositFlowProps {
   form: UseFormReturn<FundFormValues>;
   paymentMethods: PaymentMethodConfig[];
   onShowQRCode: () => void;
+  screenshotPreview: string | null;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export const DepositFlow = ({ form, paymentMethods, onShowQRCode }: DepositFlowProps) => {
+export const DepositFlow = ({ 
+  form, 
+  paymentMethods, 
+  onShowQRCode,
+  screenshotPreview,
+  onFileChange 
+}: DepositFlowProps) => {
   return (
     <Card>
-      <CardContent>
+      <CardContent className="space-y-4">
         <FormField
           control={form.control}
           name="paymentMethod"
@@ -46,6 +55,36 @@ export const DepositFlow = ({ form, paymentMethods, onShowQRCode }: DepositFlowP
                   ))}
                 </RadioGroup>
               </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="screenshot"
+          render={() => (
+            <FormItem>
+              <FormLabel>Upload Payment Screenshot</FormLabel>
+              <FormControl>
+                <div className="space-y-4">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={onFileChange}
+                    className="cursor-pointer"
+                  />
+                  {screenshotPreview && (
+                    <div className="mt-2">
+                      <img
+                        src={screenshotPreview}
+                        alt="Payment Screenshot"
+                        className="max-w-full h-auto rounded-lg border"
+                      />
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />

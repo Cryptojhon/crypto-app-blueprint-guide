@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -145,32 +144,31 @@ const FundsManagement = () => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (USD)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {activeTab === 'deposit' ? (
-              <DepositFlow 
-                form={form} 
-                paymentMethods={paymentMethods}
-                onShowQRCode={() => setShowQRCode(true)}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount (USD)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DepositFlow 
+                  form={form} 
+                  paymentMethods={paymentMethods}
+                  onShowQRCode={() => setShowQRCode(true)}
+                  screenshotPreview={screenshotPreview}
+                  onFileChange={handleFileChange}
+                />
+              </>
             ) : (
-              <WithdrawalFlow 
-                form={form}
-                screenshotPreview={screenshotPreview}
-                onFileChange={handleFileChange}
-              />
+              <WithdrawalFlow form={form} />
             )}
 
             <FormField
