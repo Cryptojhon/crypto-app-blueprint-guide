@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import TransactionHistory from "./pages/TransactionHistory";
 import { PortfolioProvider } from "./contexts/PortfolioContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/RequireAuth";
+import AdminSignup from "./pages/AdminSignup";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +67,7 @@ const App = () => (
                   </RequireAuth>
                 }
               />
+              <Route path="/admin-signup" element={<AdminSignup />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </PortfolioProvider>
