@@ -16,16 +16,22 @@ const RequireAuth = ({ children, adminOnly = false }: RequireAuthProps) => {
   useEffect(() => {
     // Only redirect after auth status is confirmed
     if (!loading) {
+      // Always redirect to auth page if not authenticated
       if (!session) {
-        // Store the current path to redirect back after login
-        if (location.pathname !== '/auth') {
-          navigate('/auth');
-        }
-      } else if (adminOnly && !isAdmin) {
+        navigate('/auth');
+        return;
+      }
+      
+      // If admin-only route but not an admin
+      if (adminOnly && !isAdmin) {
         navigate('/');
-      } else if (isAdmin && location.pathname === '/') {
-        // Redirect admins to admin dashboard when they access the root URL
+        return;
+      }
+      
+      // Redirect admins to admin dashboard when they access the root URL
+      if (isAdmin && location.pathname === '/') {
         navigate('/admin/dashboard');
+        return;
       }
     }
   }, [session, isAdmin, navigate, adminOnly, location.pathname, loading]);

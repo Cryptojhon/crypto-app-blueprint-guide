@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
@@ -78,7 +79,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       title: "Welcome back!",
       description: "You have successfully signed in.",
     });
-    navigate('/');
   };
 
   const signUp = async (email: string, password: string, metadata: Record<string, string>) => {
@@ -95,7 +95,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       title: "Account created",
       description: "Your account has been successfully created!",
     });
-    navigate('/');
   };
 
   const signOut = async () => {
@@ -122,6 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       description: "You have been successfully signed out.",
     });
     
+    // Explicitly navigate to auth page after logout
     navigate('/auth');
   };
 

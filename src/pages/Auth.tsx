@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -33,12 +34,14 @@ const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Redirect if already authenticated
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
 
+  // Check for referral code in URL
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const ref = queryParams.get('ref');
@@ -60,6 +63,7 @@ const Auth = () => {
   };
 
   const validatePassword = (password: string) => {
+    // At least 8 characters, containing uppercase, lowercase and numbers
     const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
     return re.test(password);
   };
@@ -76,19 +80,59 @@ const Auth = () => {
     }
 
     try {
-      await signIn(email, password);
-      
-      // Check if user is admin after sign in
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .single();
+      if (isLogin) {
+        // Handle login
+        await signIn(email, password);
+        
+        // Check if user is admin after sign in
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', (await supabase.auth.getUser()).data.user?.id)
+          .maybeSingle();
 
-      if (profile?.role === 'admin') {
+        if (profile?.role === 'admin') {
+          toast({
+            title: "Welcome Admin",
+            description: "You have successfully signed in as an administrator.",
+          });
+          navigate('/admin/dashboard');
+        }
+      } else {
+        // Handle signup
+        if (!validatePassword(password)) {
+          setAuthError('Password must be at least 8 characters with at least one uppercase letter, one lowercase letter, and one number');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        if (!username || !fullName) {
+          setAuthError('Username and full name are required');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        const userData = {
+          username,
+          full_name: fullName,
+          phone_number: phoneNumber,
+          district,
+        };
+        
+        // If there's a referral code, include it in the metadata
+        if (referralCode) {
+          userData['referred_by'] = referralCode;
+        }
+        
+        await signUp(email, password, userData);
+        
         toast({
-          title: "Welcome Admin",
-          description: "You have successfully signed in as an administrator.",
+          title: "Account created",
+          description: "Your account has been successfully created! Please sign in.",
         });
+        
+        // Switch to login mode after successful signup
+        setIsLogin(true);
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
@@ -239,6 +283,15 @@ const Auth = () => {
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>
         </div>
+
+        {/* Demo admin login info */}
+        {isLogin && (
+          <div className="mt-4 border-t pt-4 text-center">
+            <p className="text-sm text-muted-foreground">Demo Admin Account:</p>
+            <p className="text-xs text-muted-foreground">Email: admin@example.com</p>
+            <p className="text-xs text-muted-foreground">Password: Admin123</p>
+          </div>
+        )}
       </div>
     </div>
   );
