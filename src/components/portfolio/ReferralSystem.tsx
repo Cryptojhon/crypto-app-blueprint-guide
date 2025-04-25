@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { UsersIcon, CopyIcon, GiftIcon, CheckIcon, ShareIcon, TwitterIcon, Faceb
 import { Progress } from "@/components/ui/progress";
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MILESTONE_TIERS = [
   { count: 5, reward: '$25', achieved: false },
@@ -20,6 +20,7 @@ const MILESTONE_TIERS = [
 
 const ReferralSystem = () => {
   const { generateReferralLink, referralCode, referralCount, isLoadingReferral } = usePortfolio();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [referralLink, setReferralLink] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -31,8 +32,15 @@ const ReferralSystem = () => {
   useEffect(() => {
     if (referralCode) {
       setReferralLink(`${window.location.origin}/auth?ref=${referralCode}`);
+    } else if (user) {
+      // Try to generate a referral link automatically if the user is logged in
+      generateReferralLink().then(link => {
+        if (link) {
+          setReferralLink(link);
+        }
+      });
     }
-  }, [referralCode]);
+  }, [referralCode, user, generateReferralLink]);
   
   // Update milestones based on referral count
   useEffect(() => {
@@ -109,6 +117,11 @@ const ReferralSystem = () => {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
+
+  // If the user is not logged in, don't render the component
+  if (!user) {
+    return null;
+  }
 
   return (
     <Card>

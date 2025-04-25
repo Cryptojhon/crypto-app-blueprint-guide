@@ -4,15 +4,20 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Wallet, LineChart, LogOut, User, Menu, X } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";  // Changed from useMobile to useIsMobile
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Header = () => {
-  const { user, signOut } = useAuth();
-  const isMobile = useIsMobile();  // Changed from useMobile to useIsMobile
+  const { user, signOut, loading } = useAuth();
+  const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toggleMenu();
   };
 
   return (
@@ -37,7 +42,7 @@ const Header = () => {
 
             {menuOpen && (
               <div className="absolute top-16 left-0 right-0 bg-background border-b p-4 flex flex-col space-y-2">
-                {user ? (
+                {!loading && user ? (
                   <>
                     <Link
                       to="/"
@@ -66,10 +71,7 @@ const Header = () => {
                     <Button
                       variant="ghost"
                       className="w-full justify-start"
-                      onClick={() => {
-                        signOut();
-                        toggleMenu();
-                      }}
+                      onClick={handleSignOut}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
@@ -90,7 +92,7 @@ const Header = () => {
           </>
         ) : (
           <nav className="flex items-center space-x-4">
-            {user ? (
+            {!loading && user ? (
               <>
                 <Link
                   to="/"

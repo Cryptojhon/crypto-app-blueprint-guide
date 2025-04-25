@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   isAdmin: boolean;
+  loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, metadata: Record<string, string>) => Promise<void>;
   signOut: () => Promise<void>;
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,13 +39,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .eq('id', session.user.id)
               .maybeSingle();
             setIsAdmin(data?.role === 'admin');
+            setLoading(false);
           }, 0);
         } else {
           setIsAdmin(false);
+          setLoading(false);
         }
       }
     );
 
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -56,7 +61,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle()
           .then(({ data }) => {
             setIsAdmin(data?.role === 'admin');
+            setLoading(false);
           });
+      } else {
+        setLoading(false);
       }
     });
 
@@ -91,12 +99,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Perform signOut using Supabase
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Reset all auth state
+    setSession(null);
+    setUser(null);
+    setIsAdmin(false);
+    
+    // Redirect to auth page
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
+    
     navigate('/auth');
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, isAdmin, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ 
+      session, 
+      user, 
+      isAdmin, 
+      loading, 
+      signIn, 
+      signUp, 
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -104,7 +142,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

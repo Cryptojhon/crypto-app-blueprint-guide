@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AssetDetail from "./pages/AssetDetail";
@@ -16,6 +16,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import RequireAuth from "./components/RequireAuth";
 import AdminSignup from "./pages/AdminSignup";
 import AdminDashboard from "./pages/admin/Dashboard";
+import AdminLayout from "./components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,16 @@ const App = () => (
               <Route path="/profile" element={<RequireAuth><ProfileManagement /></RequireAuth>} />
               
               {/* Admin Routes */}
-              <Route path="/admin/dashboard" element={<RequireAuth adminOnly><AdminDashboard /></RequireAuth>} />
+              <Route path="/admin/*" element={
+                <RequireAuth adminOnly>
+                  <AdminLayout>
+                    <Routes>
+                      <Route path="/dashboard" element={<AdminDashboard />} />
+                      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                    </Routes>
+                  </AdminLayout>
+                </RequireAuth>
+              } />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
